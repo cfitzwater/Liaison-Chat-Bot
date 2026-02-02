@@ -23,3 +23,23 @@ The following table defines the structure of a single **Document Chunk** (the pr
 | embedding_vector | Array (Float) | The high-dimensional numerical representation (vector) of the text's meaning. |
 | page_number | Integer | The specific page from the source document where the text resides. |
 | last_indexed | DateTime | The timestamp of when the document was last processed by the pipeline. |
+
+---
+
+## Chunk 1: CLI Application Prototype
+This section documents the functional "in-memory" prototype of the Liaison Library Bot, developed as a Command Line Interface (CLI).
+
+### Prototype Requirements
+* **Text-Based Menu:** A clear interface allowing users to navigate between adding records, listing records, and exiting.
+* **Continuous Loop:** The program remains active, re-displaying the menu after each action until the user chooses to exit.
+* **Modular Design:** Dedicated functions for `add_item()` and `list_items()` to ensure clean, readable code.
+* **Global Data Management:** All data is stored in a single global list variable for the duration of the program execution.
+
+### Prototype Implementation Logic
+The prototype uses an `app.py` script to simulate the document ingestion process. Instead of a live PDF parser, the user manually inputs "chunks" of clinical policy to verify that the data model and storage logic function correctly before full AI integration.
+
+| Feature | Implementation Detail |
+| :--- | :--- |
+| **Storage** | Global list named `document_chunks` |
+| **Interface** | `while True` loop with `input()` prompts |
+| **Functions** | `add_chunk()` and `display_all_chunks()` |
