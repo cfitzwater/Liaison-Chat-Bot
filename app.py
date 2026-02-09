@@ -114,7 +114,7 @@ def search_documents():
 
     try:
         # Call the Gemini API
-        llm = genai.GenerativeModel('gemini-pro')
+        llm = genai.GenerativeModel('gemini2.5-pro')
         response = llm.generate_content(prompt)
 
         print("\n--- Generated Answer ---")
