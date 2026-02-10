@@ -43,7 +43,18 @@ The current `app.py` script serves as the primary controller. It orchestrates th
 
 | Function | Requirement Covered |
 | :--- | :--- |
-| `main()` | Continuous Loop / Menu Logic |
+Chunk 2: CLI Application Refactor (Data Integrity & Lifecycle)
+This section documents the transition from a simple prototype to a production-grade data management system, focusing on data integrity, state synchronization, and the implementation of structured data models.
+
+Refactor Objectives
+Structured Data Mapping: Transitioned from managing loose text strings to a formal List of Dictionaries pattern. This ensures that metadata (source/page) and content are treated as a single, cohesive object.
+
+Persistent State Synchronization: Implemented a Startup Sync logic. The application now "rehydrates" the internal Python list from the persistent ChromaDB store upon launch, ensuring parity between the database and the user interface.
+
+CRUD Lifecycle Implementation: Expanded the interface to include a full data lifecycle, specifically adding Export (Save) and Delete (Clear) capabilities.
+
+Interoperability: Added a JSON Export feature, allowing clinical data to be moved between systems or audited by clinical reviewers in a human-readable format.
+
 | `add_document()` | Add new item functionality |
 | `display_all_chunks()` | List all items functionality |
 | `search_documents()` | Advanced RAG search & AI Generation |
