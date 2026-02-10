@@ -1,155 +1,110 @@
-# app.py
-
-import chromadb
-from sentence_transformers import SentenceTransformer
-from data_ingestion import chunk_pdf
-import uuid
 import os
-import google.generativeai as genai
+import uuid
+import chromadb
+from google import genai
+from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
 
-# Initialize ChromaDB client and collection
-client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.get_or_create_collection("liaison_library")
+# 1. Load the secret API key from your .env file
+load_dotenv()
 
-# Initialize sentence transformer model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# 2. Initialize the AI Brain and Database
+print("Initializing Liaison Library Bot systems...")
+try:
+    client = chromadb.PersistentClient(path="./chroma_db")
+    collection = client.get_or_create_collection("liaison_library")
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    # Import chunking logic from your data_ingestion.py
+    from data_ingestion import chunk_pdf
+    print("Systems Ready.\n")
+except ImportError:
+    print("Warning: data_ingestion.py not found. Option 1 will be disabled.")
+except Exception as e:
+    print(f"Initialization Error: {e}")
 
 def add_document():
-    """Prompts for a file path, processes the PDF, and adds it to the collection."""
-    file_path = input("Enter the path to the PDF document: ")
+    """Option 1: Ingests a PDF into the vector database."""
+    file_path = input("Enter the full path to your PDF: ").strip()
+    if not os.path.exists(file_path):
+        print("Error: File not found. Check your spelling and case sensitivity.")
+        return
+
     try:
+        print(f"Processing {file_path}...")
         chunks = chunk_pdf(file_path)
-        if not chunks:
-            print("No text could be extracted from the document.")
-            return
-
-        # Generate embeddings for each chunk
-        embeddings = model.encode([chunk["content_text"] for chunk in chunks])
-
-        # Prepare data for ChromaDB
-        documents = [chunk["content_text"] for chunk in chunks]
-        metadatas = [{"source": chunk["source_file"], "page": chunk["page_number"]} for chunk in chunks]
+        
+        documents = [c["content_text"] for c in chunks]
+        metadatas = [{"source": c["source_file"], "page": c["page_number"]} for c in chunks]
         ids = [str(uuid.uuid4()) for _ in chunks]
-
-        # Add to collection
+        
+        # Create searchable embeddings
+        embeddings = model.encode(documents)
         collection.add(
             embeddings=embeddings.tolist(),
             documents=documents,
             metadatas=metadatas,
             ids=ids
         )
-        print(f"Successfully added {len(chunks)} chunks from {file_path}")
-
+        print(f"Success! Added {len(chunks)} sections to your library.")
     except Exception as e:
-        print(f"An error occurred: {e}")
-
-def display_all_chunks():
-    """Displays all the document chunks stored in the collection."""
-    print("\n--- All Document Chunks ---")
-    results = collection.get()
-    if not results['documents']:
-        print("No document chunks have been added yet.")
-        return
-
-    for i, doc in enumerate(results['documents']):
-        print(f"ID: {results['ids'][i]}")
-        print(f"Source: {results['metadatas'][i].get('source', 'N/A')}, Page: {results['metadatas'][i].get('page', 'N/A')}")
-        print(f"Content: {doc}")
-        print("-" * 20)
+        print(f"Failed to add document: {e}")
 
 def search_documents():
-    """Searches the collection for a given query and generates a contextual answer."""
-    query = input("Enter your search query: ")
-    if not query:
-        print("Query cannot be empty.")
-        return
+    """Option 3: Search using RAG and Gemini 2.5 Flash."""
+    query = input("\nWhat is your clinical or CMS question? ")
+    if not query: return
 
-    # Check for API key
-    api_key = os.environ.get("GEMINI_API_KEY")
+    # Auto-populate the key from .env
+    api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        try:
-            api_key = input("Please enter your Gemini API key: ")
-            os.environ["GEMINI_API_KEY"] = api_key
-        except (EOFError, KeyboardInterrupt):
-            print("\nAPI key input cancelled. Exiting search.")
-            return
-
-    genai.configure(api_key=api_key)
-
-    # Generate embedding for the query
+        print("Error: GEMINI_API_KEY not found in your .env file.")
+        return
+    
+    gen_client = genai.Client(api_key=api_key, http_options={'api_version': 'v1'})
+    
+    # Semantic search in ChromaDB
     query_embedding = model.encode([query])
-
-    # Perform search in ChromaDB
-    results = collection.query(
-        query_embeddings=query_embedding.tolist(),
-        n_results=5
-    )
+    results = collection.query(query_embeddings=query_embedding.tolist(), n_results=5)
 
     if not results['documents'][0]:
-        print("No relevant document chunks found.")
+        print("No relevant information found in the library.")
         return
 
-    # Prepare context for the LLM
+    # Build the context for the AI
     context = ""
     for i, doc in enumerate(results['documents'][0]):
         source = results['metadatas'][0][i].get('source', 'N/A')
         page = results['metadatas'][0][i].get('page', 'N/A')
         context += f"Source: {source}, Page: {page}\nContent: {doc}\n\n"
 
-    # Construct the prompt
     prompt = f"""
-    You are the Liaison Library Bot. Your task is to answer the user's query based *only* on the provided context.
-    Do not use any external knowledge.
-    For every piece of information you use, you MUST cite the source file and page number.
-
-    Context:
-    ---
-    {context}
-    ---
-
-    Query: "{query}"
-
-    Answer:
+    You are the Liaison Library Bot. Use the context below to answer the user.
+    Cite the Source and Page number for every fact you provide.
+    Context: {context}
+    Query: {query}
     """
-
-    try:
-        # Call the Gemini API
-        llm = genai.GenerativeModel('gemini2.5-pro')
-        response = llm.generate_content(prompt)
-
-        print("\n--- Generated Answer ---")
-        print(response.text)
-        print("\n--- Sources ---")
-        for i, doc in enumerate(results['documents'][0]):
-            print(f"Source: {results['metadatas'][0][i].get('source', 'N/A')}, Page: {results['metadatas'][0][i].get('page', 'N/A')}")
-
-    except Exception as e:
-        print(f"\nAn error occurred while generating the answer: {e}")
-        print("Please check your API key and network connection.")
-
+    
+    print("Consulting Gemini 2.5 Flash...")
+    response = gen_client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+    print(f"\n--- AI RESPONSE ---\n{response.text}\n------------------")
 
 def main():
-    """The main function to run the CLI application."""
     while True:
-        print("\n--- Liaison Library Bot ---")
-        print("1. Add a new document")
-        print("2. View all document chunks")
-        print("3. Search documents")
+        print("\n--- Liaison Library Bot Menu ---")
+        print("1. Add a new document (PDF)")
+        print("2. Check Library Size")
+        print("3. Search Clinical/CMS Library")
         print("4. Exit")
         
-        choice = input("Enter your choice (1-4): ")
-        
-        if choice == '1':
-            add_document()
+        choice = input("Select an option (1-4): ")
+        if choice == '1': add_document()
         elif choice == '2':
-            display_all_chunks()
-        elif choice == '3':
-            search_documents()
-        elif choice == '4':
-            print("Exiting the application. Goodbye!")
-            break
-        else:
-            print("Invalid choice. Please enter a number between 1 and 4.")
+            count = len(collection.get()['documents'])
+            print(f"Your library currently has {count} data chunks.")
+        elif choice == '3': search_documents()
+        elif choice == '4': break
+        else: print("Invalid selection.")
 
 if __name__ == "__main__":
     main()
