@@ -56,4 +56,28 @@ This section documents the transition from a simple prototype to a production-gr
 * **Persistent State Synchronization:** Implemented a Startup Sync logic. The application now "rehydrates" the internal Python list from the persistent ChromaDB store upon launch, ensuring parity between the database and the user interface.
 * **CRUD Lifecycle Implementation:** Expanded the interface to include a full data lifecycle, specifically adding Export (Save) and Delete (Clear) capabilities.
 * **Interoperability:** Added a JSON Export feature, allowing clinical data to be moved between systems or audited by clinical reviewers in a human-readable format.
+
+## Chunk 3: Data Persistence & Technical Challenge Compliance
+This section documents the final technical refinement required to solve the problem of data loss using external file persistence. This update ensures the application meets the formal requirements for automated data loading and immediate storage.
+
+### Persistence Requirements Covered
+* **Startup File Verification:** The application automatically checks for the existence of `library_data.json` upon launch using `os.path.exists()`.
+* **Graceful Degradation:** If the data file is missing, the application initializes an empty dataset without crashing.
+* **Immediate Write-Back:** Every modification to the library (adding or clearing data) triggers an immediate update to the external JSON file.
+* **Structured Human-Readable Storage:** Data is stored using JSON with an indentation level of 4, ensuring the file is easily auditable by clinical staff or instructors.
+
+### Technical Implementation Details
+| Feature | Requirement Met | Implementation Detail |
+| :--- | :--- | :--- |
+| **Auto-Load** | Load on start | `upload_data_from_file()` runs during initialization to hydrate the Master List. |
+| **Immediate Save** | Modify/Write Immediately | `save_data_to_file()` is called directly inside `add_document()` and `clear_library()`. |
+| **JSON Consistency** | Human-Readable Format | Uses `json.dump(..., indent=4)` to maintain a structured external file. |
+| **Error Handling** | No-Crash Startup | `try-except` blocks wrap file I/O operations to handle corrupted or missing files safely. |
+This section documents the transition from a simple prototype to a production-grade data management system, focusing on data integrity, state synchronization, and the implementation of structured data models.
+
+### Refactor Objectives
+* **Structured Data Mapping:** Transitioned from managing loose text strings to a formal List of Dictionaries pattern. This ensures that metadata (source/page) and content are treated as a single, cohesive object.
+* **Persistent State Synchronization:** Implemented a Startup Sync logic. The application now "rehydrates" the internal Python list from the persistent ChromaDB store upon launch, ensuring parity between the database and the user interface.
+* **CRUD Lifecycle Implementation:** Expanded the interface to include a full data lifecycle, specifically adding Export (Save) and Delete (Clear) capabilities.
+* **Interoperability:** Added a JSON Export feature, allowing clinical data to be moved between systems or audited by clinical reviewers in a human-readable format.
 ```
