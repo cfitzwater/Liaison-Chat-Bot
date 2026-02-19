@@ -1,0 +1,157 @@
+[
+    {
+        "timestamp": "2026-02-19 09:31:44",
+        "question": "What are the most recent 30 day changes for home health",
+        "answer": "Error communicating with AI: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\nPlease retry in 15.312808911s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_input_token_count', 'quotaId': 'GenerateContentInputTokensPerModelPerMinute-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '15s'}]}}"
+    },
+    {
+        "timestamp": "2026-02-19 09:36:10",
+        "question": "What are the advantages of using Intermountain home health?",
+        "answer": "Error communicating with AI: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 49.262116814s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_input_token_count', 'quotaId': 'GenerateContentInputTokensPerModelPerMinute-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '49s'}]}}"
+    },
+    {
+        "timestamp": "2026-02-19 09:40:43",
+        "question": "Can you tell me who is eligible for hospice care?",
+        "answer": "Error communicating with AI: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\\nPlease retry in 16.840533453s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-2.0-flash', 'location': 'global'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_input_token_count', 'quotaId': 'GenerateContentInputTokensPerModelPerMinute-FreeTier', 'quotaDimensions': {'model': 'gemini-2.0-flash', 'location': 'global'}}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '16s'}]}}"
+    },
+    {
+        "timestamp": "2026-02-19 09:51:05",
+        "question": "Who is eligible for home health?",
+        "answer": "The AI is currently at its quota limit. Please wait 60 seconds and try again."
+    },
+    {
+        "timestamp": "2026-02-19 09:57:59",
+        "question": "Who is eligible for hospice?",
+        "answer": "The AI is currently at its quota limit. Please wait 60 seconds and try again."
+    },
+    {
+        "timestamp": "2026-02-19 10:04:21",
+        "question": "hello",
+        "answer": "The AI is currently at its quota limit. Please wait 60 seconds and try again."
+    },
+    {
+        "timestamp": "2026-02-19 10:06:10",
+        "question": "hello",
+        "answer": "Error communicating with AI: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}"
+    },
+    {
+        "timestamp": "2026-02-19 10:17:33",
+        "question": "Who is eligible for home health?",
+        "answer": "The AI is currently at its quota limit. Please wait 60 seconds and try again."
+    },
+    {
+        "timestamp": "2026-02-19 10:24:21",
+        "question": "hello",
+        "answer": "The AI is currently at its quota limit. Please wait 60 seconds and try again."
+    },
+    {
+        "timestamp": "2026-02-19 10:26:48",
+        "question": "hello",
+        "answer": "I don't know."
+    },
+    {
+        "timestamp": "2026-02-19 10:37:28",
+        "question": "who qualifies for home health?",
+        "answer": "The provided context states that for home health aide services to be covered, \"The patient must meet the qualifying criteria as specified in \u00a730\". However, the specific qualifying criteria outlined in \u00a730 are not provided in this text. Therefore, I don't know who qualifies for home health based on the given context.\n\nSource: /home/codyfitzwater/Desktop/LiaisonBot/CMSHH.pdf, Page: 79"
+    },
+    {
+        "timestamp": "2026-02-19 10:38:16",
+        "question": "who is eligible for hospice care?",
+        "answer": "Anyone with a terminal illness seeking comfort care (rather than a cure) is eligible for hospice. Your doctor and a hospice doctor must both certify that you have a terminal illness and have 6 months or less to live if the illness runs its normal course.\n\nSource: Hospice.pdf, Page: 4"
+    },
+    {
+        "timestamp": "2026-02-19 10:42:13",
+        "question": "Who is eligible for hospice care?",
+        "answer": "Anyone with a terminal illness seeking comfort care (rather than a cure) is eligible for hospice. A person's doctor and a hospice doctor must both certify that they have a terminal illness and have 6 months or less to live if the illness runs its normal course. Hospice eligibility is re-evaluated regularly while receiving services.\n\nSource: /home/codyfitzwater/Desktop/LiaisonBot/Hospice.pdf, Page: 4"
+    },
+    {
+        "timestamp": "2026-02-19 10:54:24",
+        "question": "What services are covered by hospice?",
+        "answer": "I don't know. The provided context indicates that \"What services are covered by hospice?\" is addressed on page 5, but page 5 is not included in the provided materials.\n\nSource: /home/codyfitzwater/Desktop/LiaisonBot/Hospice.pdf, Page: 2"
+    },
+    {
+        "timestamp": "2026-02-19 10:55:23",
+        "question": "Who is eligible for hospice?",
+        "answer": "Anyone with a terminal illness seeking comfort care (rather than a cure) is eligible for hospice. Both your doctor and a hospice doctor must certify that you have a terminal illness and have 6 months or less to live if the illness runs its normal course. Hospice eligibility is re-evaluated regularly while receiving services.\n\nSource: Hospice.pdf, Page: 4"
+    },
+    {
+        "timestamp": "2026-02-19 10:55:40",
+        "question": "What services are covered by hospice?",
+        "answer": "I don't know. The provided context indicates that \"What services are covered by hospice?\" is discussed on page 5 of the document, but page 5 is not included in the provided text.\n\nSource: /home/codyfitzwater/Desktop/LiaisonBot/Hospice.pdf, Page: 2"
+    },
+    {
+        "timestamp": "2026-02-19 11:03:57",
+        "question": "What services are covered by hospice?",
+        "answer": "The following services are covered by Intermountain Hospice Services:\n\n*   In-home visits by your hospice team\n*   Medical or nursing care for physical symptoms\n*   Intermittent assistance with personal care needs\n*   Pain and symptom management\n*   Medications for comfort\n*   Medical supplies and equipment\n*   Help and support for the emotional, psychosocial, and spiritual aspects of dying\n*   Coaching caregivers on end-of-life care and what to expect\n*   Short-term inpatient care for pain or symptom management\n*   Inpatient respite care when the caregiver needs a rest\n*   One year of bereavement support to surviving loved ones and friends, which includes:\n    *   Bereavement mailings with information and tips on dealing with grief\n    *   Phone calls to check in and provide help with grief\n    *   Bereavement education groups\n\nYour hospice team provides all medical care and services necessary to offer comfort and support related to the terminal illness and its related conditions.\n\n(Hospice.pdf, Page: 5)"
+    },
+    {
+        "timestamp": "2026-02-19 11:04:55",
+        "question": "What can you tell me about home health and hospice regulations for medicaid?",
+        "answer": "Based on the provided context, here's what can be told about home health and hospice regulations for Medicaid:\n\n**Hospice Regulations for Medicaid:**\n\n*   **Face-to-Face Encounter:** Medicaid requires a face-to-face encounter with a physician or nurse practitioner for hospice eligibility. (HomeHealth.pdf, Page: 5)\n*   **Hospice Benefit Election:** Medicaid patients may elect the hospice benefit. By signing the Notice of Election form, the patient/representative acknowledges understanding that certain Medicare/Medicaid services are waived by this election. (HomeHealth.pdf, Page: 5)\n*   **Levels of Care:** The Medicaid hospice benefit includes four different levels of care: Routine Care, General Inpatient Care, Respite Care, and Continuous Home Care. (HomeHealth.pdf, Page: 18)\n*   **Curative Treatment Exception:** Pediatric continuous care patients on Medicaid may receive both curative and hospice services at the same time. (HomeHealth.pdf, Page: 5)\n\nThe provided context also generally states that Federal and State governments have specific standards of care for home health and hospice, which Intermountain Homecare & Hospice, as a Medicare certified and Joint Commission accredited program, must abide by. (HomeHealth.pdf, Page: 1) Medicaid is listed as one of the funding sources for home health or hospice services. (HomeHealth.pdf, Page: 1)"
+    },
+    {
+        "timestamp": "2026-02-19 11:15:46",
+        "question": "What services are covered by Hospice?",
+        "answer": "Your hospice team will provide all medical care and services needed to provide comfort and support related to the terminal illness and related conditions. Covered services may include:\n\n*   In-home visits by your hospice team\n*   Medical or nursing care for physical symptoms\n*   Intermittent assistance with personal care needs\n*   Pain and symptom management\n*   Medications for comfort\n*   Medical supplies and equipment\n*   Help and support for the emotional, psychosocial, and spiritual aspects of dying\n*   Coaching caregivers on end-of-life care and what to expect\n*   Short-term inpatient care for pain or symptom management\n*   Inpatient respite care when the caregiver needs a rest\n*   One year of bereavement support to surviving loved ones and friends, including:\n    *   Bereavement mailings with information and tips on dealing with grief\n    *   Phone calls to see how you are doing and to provide help with your grief\n    *   Bereavement education groups\n\n[Source: /home/codyfitzwater/Desktop/LiaisonBot/Hospice.pdf, Page: 5]"
+    },
+    {
+        "timestamp": "2026-02-19 11:20:56",
+        "question": "What services are covered by hospice?",
+        "answer": "Your hospice team provides all medical care and services necessary for comfort and support related to the terminal illness and its associated conditions. These services include:\n\n*   In-home visits by your hospice team\n*   Medical or nursing care for physical symptoms\n*   Intermittent assistance with personal care needs\n*   Pain and symptom management\n*   Medications for comfort\n*   Medical supplies and equipment\n*   Help and support for the emotional, psychosocial, and spiritual aspects of dying\n*   Coaching caregivers on end-of-life care and what to expect\n*   Short-term inpatient care for pain or symptom management\n*   Inpatient respite care when the caregiver needs a rest\n*   One year of bereavement support to surviving loved ones and friends, which includes:\n    *   Bereavement mailings with information and tips on dealing with grief\n    *   Phone calls to check in and provide help with grief\n    *   Bereavement education groups\n\nNurses and physicians are available 24 hours a day, 7 days a week.\n[Source: Hospice.pdf, Page: 5](/library/Hospice.pdf#page=5)"
+    },
+    {
+        "timestamp": "2026-02-19 11:23:56",
+        "question": "What services are covered by hospice?",
+        "answer": "Hospice services cover all medical care and services aimed at providing comfort and support for the terminal illness and related conditions. These services may include:\n\n*   In-home visits by your hospice team\n*   Medical or nursing care for physical symptoms\n*   Intermittent assistance with personal care needs\n*   Pain and symptom management\n*   Medications for comfort\n*   Medical supplies and equipment\n*   Help and support for emotional, psychosocial, and spiritual aspects of dying\n*   Coaching caregivers on end-of-life care and what to expect\n*   Short-term inpatient care for pain or symptom management\n*   Inpatient respite care when the caregiver needs a rest\n*   One year of bereavement support to surviving loved ones and friends, including bereavement mailings, phone calls, and education groups\n\nNurses and physicians are available 24 hours a day, 7 days a week. [Source: Hospice.pdf, Page: 5]"
+    },
+    {
+        "timestamp": "2026-02-19 11:24:42",
+        "question": "Who is eligible for hospice care?",
+        "answer": "Anyone with a terminal illness who is seeking comfort care (rather than a cure) is eligible for hospice. To be eligible, both your doctor and a hospice doctor must certify that you have a terminal illness and have 6 months or less to live if the illness runs its normal course. Eligibility is re-evaluated regularly while receiving hospice services.\n\n[Source: Hospice.pdf, Page: 4](/library/Hospice.pdf#page=4)"
+    },
+    {
+        "timestamp": "2026-02-19 11:25:47",
+        "question": "What services are covered by hospice?",
+        "answer": "Hospice services cover all medical care and services necessary to provide comfort and support related to the terminal illness and its associated conditions. These services may include:\n\n*   In-home visits by your hospice team.\n*   Medical or nursing care for physical symptoms.\n*   Intermittent assistance with personal care needs.\n*   Pain and symptom management.\n*   Medications for comfort.\n*   Medical supplies and equipment.\n*   Help and support for the emotional, psychosocial, and spiritual aspects of dying.\n*   Coaching caregivers on end-of-life care and what to expect.\n*   Short-term inpatient care for pain or symptom management.\n*   Inpatient respite care when the caregiver needs a rest.\n*   One year of bereavement support to surviving loved ones and friends, which includes bereavement mailings, phone calls, and education groups.\n\n[Source: Hospice.pdf, Page: 5](/library/Hospice.pdf#page=5)"
+    },
+    {
+        "timestamp": "2026-02-19 11:31:04",
+        "question": "Who is eligible for hospice?",
+        "answer": "Anyone with a terminal illness who is seeking comfort care rather than a cure is eligible for hospice. Both your doctor and a hospice doctor must certify that you have a terminal illness and are expected to live 6 months or less if the illness follows its normal course. Hospice eligibility is re-evaluated regularly while you are receiving services.\n\n[Source: Hospice.pdf, Page: 4](/library/Hospice.pdf#page=4)"
+    },
+    {
+        "timestamp": "2026-02-19 11:35:35",
+        "question": "What services are covered by hospice?",
+        "answer": "Hospice services cover all medical care and services necessary to provide comfort and support related to the terminal illness and its related conditions. These services may include:\n\n*   In-home visits by your hospice team\n*   Medical or nursing care for physical symptoms\n*   Intermittent assistance with personal care needs\n*   Pain and symptom management\n*   Medications for comfort\n*   Medical supplies and equipment\n*   Help and support for the emotional, psychosocial, and spiritual aspects of dying\n*   Coaching caregivers on end-of-life care and what to expect\n*   Short-term inpatient care for pain or symptom management\n*   Inpatient respite care when the caregiver needs a rest\n*   One year of bereavement support to surviving loved ones and friends, which includes:\n    *   Bereavement mailings with information and tips on dealing with grief\n    *   Phone calls to check in and provide help with grief\n    *   Bereavement education groups\n\n[Source: Hospice.pdf, Page: 5](/library/Hospice.pdf#page=5)"
+    },
+    {
+        "timestamp": "2026-02-19 11:35:57",
+        "question": "Who is eligible for hospice?",
+        "answer": "Anyone with a terminal illness who is seeking comfort care, rather than a cure, is eligible for hospice. Eligibility requires certification from both your doctor and a hospice doctor, confirming a terminal illness and a prognosis of 6 months or less to live if the illness follows its normal course. Eligibility is re-evaluated regularly while receiving hospice services.\n\n[Source: Hospice.pdf, Page: 4](/library/Hospice.pdf#page=4)"
+    },
+    {
+        "timestamp": "2026-02-19 11:41:20",
+        "question": "Who is eligible for hospice?",
+        "answer": "Anyone with a terminal illness who is seeking comfort care, rather than a cure, is eligible for hospice. Eligibility requires certification from both your doctor and a hospice doctor, confirming that you have a terminal illness and are expected to live six months or less if the illness runs its normal course. Eligibility is re-evaluated regularly while receiving hospice services.\n\n[Source: Hospice.pdf, Page: 4](/library/Hospice.pdf#page=4)"
+    },
+    {
+        "timestamp": "2026-02-19 11:41:51",
+        "question": "What services are covered by hospice?",
+        "answer": "Hospice services cover a range of care and support related to the terminal illness and its related conditions, including:\n\n*   In-home visits by your hospice team\n*   Medical or nursing care for physical symptoms\n*   Intermittent assistance with personal care needs\n*   Pain and symptom management\n*   Medications for comfort\n*   Medical supplies and equipment\n*   Help and support for the emotional, psychosocial, and spiritual aspects of dying\n*   Coaching caregivers on end-of-life care and what to expect\n*   Short-term inpatient care for pain or symptom management\n*   Inpatient respite care when the caregiver needs a rest\n*   One year of bereavement support to surviving loved ones and friends, which includes bereavement mailings, phone calls, and bereavement education groups.\n\n[Source: Hospice.pdf, Page: 5](/library/Hospice.pdf#page=5)"
+    },
+    {
+        "timestamp": "2026-02-19 11:47:58",
+        "question": "What services are covered by hospice?",
+        "answer": "Hospice services cover all medical care and services aimed at providing comfort and support for the terminal illness and related conditions. These services may include:\n\n*   In-home visits by your hospice team\n*   Medical or nursing care for physical symptoms\n*   Intermittent assistance with personal care needs\n*   Pain and symptom management\n*   Medications for comfort\n*   Medical supplies and equipment\n*   Help and support for emotional, psychosocial, and spiritual aspects of dying\n*   Coaching caregivers on end-of-life care and what to expect\n*   Short-term inpatient care for pain or symptom management\n*   Inpatient respite care when the caregiver needs a rest\n*   One year of bereavement support to surviving loved ones and friends, including bereavement mailings, phone calls, and education groups.\n\n[Source: Hospice.pdf, Page: 5](/library/Hospice.pdf#page=5)"
+    },
+    {
+        "timestamp": "2026-02-19 11:48:20",
+        "question": "Who is eligible for hospice?",
+        "answer": "Anyone with a terminal illness who is seeking comfort care, rather than a cure, is eligible for hospice. Eligibility requires certification from both your doctor and a hospice doctor, confirming a terminal illness and a prognosis of six months or less to live if the illness follows its typical progression. Hospice eligibility is re-evaluated regularly while services are being received.\n\n[Source: Hospice.pdf, Page: 4](/library/Hospice.pdf#page=4)"
+    },
+    {
+        "timestamp": "2026-02-19 11:48:56",
+        "question": "What are some of the 30 day changes happening for home health?",
+        "answer": "The national 30-day period payment rate for Home Health Prospective Payment System (HH PPS) was recently updated and implemented. The revision was issued on November 28, 2023, became effective on January 1, 2024, and was implemented on January 2, 2024.\n\nUnder this 30-day period payment rate, the following services are included:\n*   Skilled nursing services\n*   Home health aide services\n*   Physical therapy\n*   Speech-language pathology services\n*   Occupational therapy services\n*   Medical social services\n*   Costs for routine and nonroutine medical supplies\n\nDurable medical equipment (DME) is specifically excluded from the 30-day period payment rate and consolidated billing requirements; it continues to be paid outside of the HH PPS rate.\n\n[Source: CMSHH.pdf, Page: 6](/library/CMSHH.pdf#page=6)"
+    }
+]
