@@ -67,3 +67,13 @@ This section documents the transition to a full-stack **Flask Web Application**,
 | **Model** | **Gemini 2.5 Flash**—optimized for speed and reliability. |
 | **Search Depth** | Configured `n_results=4` to capture cross-references across multiple document pages. |
 | **Security** | Used `.env` for key management and `target="_blank"` for secure external link handling. |
+
+## Chunk 5: Knowledge Entry System & Form Data Handling
+This section documents the implementation of the manual knowledge entry portal, meeting the technical requirements for form handling and data extraction.
+
+### Technical Challenge Implementation
+* **Dynamic HTML Entry Form:** Developed a dedicated `/add` route that serves an HTML form for capturing user names, email addresses, and clinical notes.
+* **POST Request Processing:** Implemented a `/save_item` route to handle incoming form data via **POST** requests.
+* **Data Structuring:** The application extracts raw form data and structures it into a **Python Dictionary** before saving, ensuring data integrity.
+* **Dual-Layer Storage:** Submitted items are saved to the persistent `library_data.json` file and immediately vectorized/indexed into **ChromaDB** to make the information searchable in real-time.
+* **Advanced Session Management:** Integrated **JavaScript** and multi-tab redirection to ensure the user's active chatbot session remains intact during the entry process.

@@ -1,86 +1,99 @@
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory
 import os
 import json
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, send_from_directory
-from dotenv import load_dotenv
+import uuid
 
-# Import the new search function from your app.py
-from app import search_documents_web
+# The bridge to your RAG logic and database in app.py
+from app import search_documents_web, collection, model 
 
-load_dotenv()
 app = Flask(__name__)
 
-# --- Configuration ---
-QA_FILE = "qa_history.json"
+# File paths and directories
 LIBRARY_DIR = "library"
-
-# Ensure the clinical library folder exists
-if not os.path.exists(LIBRARY_DIR):
-    os.makedirs(LIBRARY_DIR)
-
-def save_qa_history(question, answer):
-    """Stores every interaction in a structured JSON file for your submission."""
-    entry = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "question": question,
-        "answer": answer
-    }
-    
-    history = []
-    if os.path.exists(QA_FILE):
-        try:
-            with open(QA_FILE, "r") as f:
-                history = json.load(f)
-        except:
-            history = []
-            
-    history.append(entry)
-    
-    with open(QA_FILE, "w") as f:
-        json.dump(history, f, indent=4)
-
-# --- Routes ---
+DATA_FILE = "library_data.json"
 
 @app.route('/')
 def index():
-    """Requirement: Serves the main Intermountain-themed dashboard."""
+    """Main Chatbot Interface (The primary tab)"""
     return render_template('index.html')
+
+@app.route('/add', methods=['GET'])
+def add_form():
+    """Displays the HTML form in a new tab for manual entry"""
+    return render_template('add_item.html')
+
+@app.route('/save_item', methods=['POST'])
+def save_item():
+    """
+    1. Extracts Name, Email, and Notes from the form.
+    2. Structures it as a dictionary and saves to JSON.
+    3. Indexes the data in ChromaDB.
+    4. Closes the tab automatically to return to the chat.
+    """
+    # 1. Extract data from the POST request
+    user_name = request.form.get('user_name')
+    user_email = request.form.get('user_email')
+    notes_content = request.form.get('notes')
+
+    if not all([user_name, user_email, notes_content]):
+        return "Error: All fields are required.", 400
+
+    # 2. Structure the data as a dictionary (Project Requirement)
+    new_entry = {
+        "id": str(uuid.uuid4()),
+        "inputted_by": user_name,
+        "email": user_email,
+        "notes": notes_content,
+        "timestamp": str(uuid.uuid1())
+    }
+
+    # 3. Save to the JSON data file (Persistence Requirement)
+    data = []
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r') as f:
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                data = []
+    
+    data.append(new_entry)
+    
+    with open(DATA_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
+    # 4. Immediately index in ChromaDB so it is searchable
+    embedding = model.encode([notes_content]).tolist()
+    collection.add(
+        ids=[new_entry["id"]],
+        embeddings=embedding,
+        documents=[notes_content],
+        metadatas=[{"source": f"Manual Note by {user_name}", "page": "N/A"}]
+    )
+
+    # 5. The "Self-Destruct" response: 
+    # This closes the new tab and leaves you looking at your original chat.
+    return '<script type="text/javascript">window.close();</script>'
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Handles the user prompt and returns the AI's 'Thinking' result."""
-    user_message = request.json.get("message")
-    
-    if not user_message:
-        return jsonify({"answer": "Please enter a question."}), 400
-
-    # Call the RAG logic in app.py
-    try:
-        ai_response = search_documents_web(user_message)
-        
-        # Log the Q&A to your history file
-        save_qa_history(user_message, ai_response)
-        
-        return jsonify({"answer": ai_response})
-    except Exception as e:
-        return jsonify({"answer": f"System Error: {str(e)}"}), 500
+    """Handles the chatbot messaging logic"""
+    user_message = request.json.get('message')
+    response = search_documents_web(user_message)
+    return jsonify({"answer": response})
 
 @app.route('/api/files')
 def list_files():
-    """Requirement: Scans the library folder to populate the sidebar."""
-    try:
-        files = [f for f in os.listdir(LIBRARY_DIR) if f.endswith('.pdf')]
-        return jsonify({"files": files})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    """Populates the sidebar with clinical PDFs"""
+    if not os.path.exists(LIBRARY_DIR):
+        return jsonify({"files": []})
+    files = [f for f in os.listdir(LIBRARY_DIR) if f.endswith('.pdf')]
+    return jsonify({"files": files})
 
 @app.route('/library/<filename>')
 def get_pdf(filename):
-    """Requirement: Allows you to open clinical PDFs directly from the web app."""
+    """Serves the PDF files for viewing"""
     return send_from_directory(LIBRARY_DIR, filename)
 
 if __name__ == '__main__':
-    """Requirement: Runs the Flask development server."""
-    print("Liaison Bot Web Server Starting...")
-    print(f"Access the bot at: http://127.0.0.1:5000")
+    # Running on local development server
     app.run(debug=True, port=5000)
