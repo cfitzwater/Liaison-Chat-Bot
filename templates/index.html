@@ -3,47 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liaison Library Bot</title>
+    <title>Liaison Library Bot - Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root { --navy: #0C0050; --blue: #3388DD; --bg: #f4f7f6; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        header { background: var(--navy); color: white; padding: 20px; text-align: center; font-size: 1.5rem; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 30px; }
-        .nav-link { color: white; font-size: 0.9rem; text-decoration: underline; }
+        header { background: var(--navy); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .user-greeting { font-size: 1.2rem; font-weight: bold; }
+        .nav-links { display: flex; gap: 20px; align-items: center; }
+        .nav-link { color: white; font-size: 0.9rem; text-decoration: underline; cursor: pointer; }
         .main-container { display: flex; flex: 1; overflow: hidden; padding: 20px; gap: 20px; }
-        #chat-window { flex: 3; background: white; border-radius: 8px; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        #history-sidebar { flex: 1; background: white; border-radius: 8px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .history-list { flex: 1; overflow-y: auto; margin-top: 10px; }
+        .history-item { padding: 12px; border-bottom: 1px solid #eee; font-size: 0.85rem; cursor: pointer; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .history-item:hover { background: #eef4fb; border-left: 4px solid var(--blue); }
+        .btn-icon { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px; border-radius: 4px; }
+        .btn-icon:hover { background: #ddd; }
+        #chat-window { flex: 2.5; background: white; border-radius: 8px; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         #chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .message { max-width: 80%; padding: 12px 18px; border-radius: 15px; line-height: 1.5; font-size: 0.95rem; }
         .user-message { align-self: flex-end; background: var(--navy); color: white; border-bottom-right-radius: 2px; }
         .bot-message { align-self: flex-start; background: var(--blue); color: white; border-bottom-left-radius: 2px; }
-        .bot-message a { color: white; text-decoration: underline; font-weight: bold; }
         #input-area { padding: 20px; border-top: 1px solid #eee; }
         .input-row { display: flex; gap: 10px; }
         input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 5px; outline: none; }
-        button { background: var(--navy); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-        #sidebar { flex: 1; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        button#send-btn { background: var(--navy); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #resource-sidebar { flex: 0.8; background: white; border-radius: 8px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h3 { color: var(--navy); font-size: 1rem; margin-top: 0; border-bottom: 2px solid var(--blue); padding-bottom: 5px; }
     </style>
 </head>
 <body>
 
 <header>
-    Liaison Library Bot
-    <a href="/add" class="nav-link" target="_blank">Add Knowledge</a>
+    <div class="user-greeting">Welcome, {{ first_name }}!</div>
+    <div class="nav-links">
+        {% if session.get('is_admin') %}
+            <a href="/admin" class="nav-link" style="color: #ffcc00;">Admin Panel</a>
+        {% endif %}
+        <a onclick="location.reload()" class="nav-link">New Chat</a>
+        <a href="/add" class="nav-link" target="_blank">Add Knowledge</a>
+        <a href="/logout" class="nav-link" style="color: #ff9999;">Logout</a>
+    </div>
 </header>
 
 <div class="main-container">
+    <div id="history-sidebar">
+        <h3>Previous Conversations</h3>
+        <div class="history-list">
+            {% for chat in history %}
+            <div class="history-item" onclick="loadHistory(this)" data-user="{{ chat.user }}" data-bot="{{ chat.bot }}" data-ts="{{ chat.timestamp }}">
+                <div style="flex: 1; overflow: hidden;">
+                    <small style="color: #666; font-size: 0.7rem;">{{ chat.timestamp }}</small><br>
+                    <strong class="display-title">{{ chat.user[:25] }}...</strong>
+                </div>
+                <div class="action-btns">
+                    <button class="btn-icon" onclick="event.stopPropagation(); renameHistory(this.closest('.history-item'))">✏️</button>
+                    <button class="btn-icon" onclick="event.stopPropagation(); deleteHistory(this.closest('.history-item'))">🗑️</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
     <div id="chat-window">
-        <div id="chat-messages"></div>
+        <div id="chat-messages">
+            <div class="message bot-message">Hello {{ first_name }}, I'm ready to help with clinical docs.</div>
+        </div>
         <div id="input-area">
             <div class="input-row">
-                <input type="text" id="user-input" placeholder="Ask a clinical question...">
-                <button onclick="sendMessage()">Send</button>
+                <input type="text" id="user-input" placeholder="Ask about clinical protocols...">
+                <button id="send-btn" onclick="sendMessage()">Send</button>
             </div>
         </div>
     </div>
-    <div id="sidebar">
-        <h3>Clinical Resources</h3>
-        <ul id="file-list" style="list-style: none; padding: 0;"></ul>
+
+    <div id="resource-sidebar">
+        <h3>Library Files</h3>
+        <ul id="file-list" style="list-style: none; padding: 0; font-size: 0.85rem;"></ul>
     </div>
 </div>
 
@@ -52,13 +88,53 @@
     renderer.link = ({href, text}) => `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
     marked.setOptions({ renderer: renderer });
 
+    function loadHistory(element) {
+        const userMsg = element.getAttribute('data-user');
+        const botMsg = element.getAttribute('data-bot');
+        const chatWindow = document.getElementById('chat-messages');
+        chatWindow.innerHTML = '';
+        addMessage(userMsg, 'user-message');
+        addMessage(botMsg, 'bot-message', true);
+    }
+
+    async function deleteHistory(element) {
+        if (!confirm("Delete this chat?")) return;
+        const ts = element.getAttribute('data-ts');
+        const res = await fetch('/delete_chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({timestamp: ts})
+        });
+        if (res.ok) element.remove();
+    }
+
+    async function renameHistory(element) {
+        const ts = element.getAttribute('data-ts');
+        const oldName = element.getAttribute('data-user');
+        const newName = prompt("New title:", oldName);
+        if (!newName || newName === oldName) return;
+        const res = await fetch('/rename_chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({timestamp: ts, new_name: newName})
+        });
+        if (res.ok) {
+            element.setAttribute('data-user', newName);
+            element.querySelector('.display-title').innerText = newName.substring(0, 25) + "...";
+        }
+    }
+
     async function sendMessage() {
         const input = document.getElementById('user-input');
         const text = input.value.trim();
         if (!text) return;
         addMessage(text, 'user-message');
         input.value = '';
-        const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+        const res = await fetch('/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: text})
+        });
         const data = await res.json();
         addMessage(data.answer, 'bot-message', true);
     }
@@ -76,12 +152,15 @@
         const res = await fetch('/api/files');
         const data = await res.json();
         const list = document.getElementById('file-list');
+        list.innerHTML = '';
         data.files.forEach(f => {
             const li = document.createElement('li');
-            li.innerHTML = `<a href="/library/${f}" target="_blank" style="color:#0C0050; text-decoration:none;">${f}</a>`;
+            li.style.marginBottom = "8px";
+            li.innerHTML = `📄 <a href="/library/${f}" target="_blank" style="color:var(--navy); text-decoration:none;">${f}</a>`;
             list.appendChild(li);
         });
     }
+
     loadFiles();
     document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 </script>

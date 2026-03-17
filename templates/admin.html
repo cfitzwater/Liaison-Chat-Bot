@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; background: #f4f7f6; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .btn { padding: 5px 10px; cursor: pointer; border: none; border-radius: 4px; color: white; }
+        .btn-toggle { background: #3388DD; }
+        .btn-delete { background: #ff4d4d; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>User Management</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.first_name }} {{ user.last_name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td><strong>{{ "Admin" if user.is_admin else "User" }}</strong></td>
+                    <td>
+                        <form action="/toggle_admin/{{ user.email }}" method="POST" style="display:inline;">
+                            <button class="btn btn-toggle">{{ "Demote" if user.is_admin else "Make Admin" }}</button>
+                        </form>
+                        <form action="/delete_user/{{ user.email }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete?')">
+                            <button class="btn btn-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+        <a href="/">← Back to Chat</a>
+    </div>
+</body>
+</html>
