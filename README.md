@@ -77,3 +77,20 @@ This section documents the implementation of the manual knowledge entry portal, 
 * **Data Structuring:** The application extracts raw form data and structures it into a **Python Dictionary** before saving, ensuring data integrity.
 * **Dual-Layer Storage:** Submitted items are saved to the persistent `library_data.json` file and immediately vectorized/indexed into **ChromaDB** to make the information searchable in real-time.
 * **Advanced Session Management:** Integrated **JavaScript** and multi-tab redirection to ensure the user's active chatbot session remains intact during the entry process.
+
+## Chunk 6: User Login
+This section documents the implementation of a professional multi-user environment, focusing on session security, role-based access, and personalized data retrieval.
+
+### User Login & Security Objectives
+* **Secure Authentication & Sessions:** Developed a comprehensive Signup/Login system utilizing **Flask Sessions**. This ensures that the chat interface and administrative tools are inaccessible without valid credentials stored in `users.json`.
+* **Role-Based Access Control (RBAC):**
+    * Implemented a **Dynamic Admin Dashboard** only accessible to users with the `is_admin` flag.
+    * Developed a "Super Admin" failsafe for `fitz3663@gmail.com` to manage the initial team.
+    * Integrated **Promote/Demote** functionality, allowing admins to grant administrative privileges to other users directly through the web UI.
+* **Personalized UX & Account Accountability:**
+    * **Contextual Greetings:** The application uses Jinja2 to display personalized greetings (e.g., "Welcome, Cody!") based on session data.
+    * **Automated Form Attribution:** The "Add Knowledge" portal now auto-fills the `user_name` and `email` fields using session variables, ensuring every manual clinical entry is correctly attributed to the logged-in user.
+* **Conversation Management (CRUD for History):**
+    * **Retrieval:** Users can view a persistent list of their previous conversations in the sidebar.
+    * **Rename/Delete:** Implemented JavaScript and Flask routes allowing users to rename chat titles for better organization or delete them entirely to manage their data footprint.
+* **Admin Dashboard Features:** Created a secure `/admin` route that lists all registered users and provides administrative actions, including account deletion and role management.
