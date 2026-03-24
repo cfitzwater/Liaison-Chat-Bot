@@ -20,8 +20,7 @@ LIBRARY_DIR = "library"
 
 db.init_app(app)
 
-# --- FLASK-ADMIN (Raw Database Tool) ---
-# Accessible at /admin_db/ 
+# --- DATABASE ADMIN (Raw Tool) ---
 class AdminModelView(ModelView):
     def is_accessible(self):
         return session.get('is_admin') == True
@@ -41,6 +40,7 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         user = User.query.filter_by(email=email, password=password).first()
+        
         if user:
             session['user_id'] = user.id
             session['user_email'] = user.email
@@ -48,7 +48,10 @@ def login():
             session['last_name'] = user.last_name
             session['is_admin'] = user.is_admin
             return redirect(url_for('index'))
-        return "Invalid credentials", 401
+        
+        # If login fails, reload login.html with an error message
+        return render_template('login.html', error="Invalid email or password. Please try again.")
+    
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -74,15 +77,12 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- MAIN CHAT INTERFACE ---
+# --- MAIN INTERFACE ---
 
 @app.route('/')
 def index():
     if 'user_id' not in session: return redirect(url_for('login'))
-    
-    # Emergency Admin Override
-    if session.get('user_email') == 'fitz3663@gmail.com':
-        session['is_admin'] = True
+    if session.get('user_email') == 'fitz3663@gmail.com': session['is_admin'] = True
 
     all_chats = ChatHistory.query.filter_by(user_id=session['user_id']).order_by(ChatHistory.timestamp.desc()).all()
     seen_sessions, sidebar_history = set(), []
@@ -104,7 +104,7 @@ def chat():
     db.session.commit()
     return jsonify({"answer": response})
 
-# --- CUSTOM ADMIN DASHBOARD (Fixes the 404) ---
+# --- USER MANAGEMENT ADMIN ---
 
 @app.route('/admin', strict_slashes=False)
 def admin_dashboard():
@@ -130,12 +130,11 @@ def delete_user(user_id):
         db.session.commit()
     return redirect(url_for('admin_dashboard'))
 
-# --- KNOWLEDGE SUBMISSION (Full Name Attribution) ---
+# --- KNOWLEDGE SUBMISSION ---
 
 @app.route('/add')
 def add_form():
     if 'user_id' not in session: return redirect(url_for('login'))
-    # Pulling both names for the Contributor field
     full_name = f"{session.get('first_name')} {session.get('last_name')}"
     return render_template('add_item.html', full_name=full_name)
 
