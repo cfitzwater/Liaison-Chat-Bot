@@ -94,3 +94,24 @@ This section documents the implementation of a professional multi-user environme
     * **Retrieval:** Users can view a persistent list of their previous conversations in the sidebar.
     * **Rename/Delete:** Implemented JavaScript and Flask routes allowing users to rename chat titles for better organization or delete them entirely to manage their data footprint.
 * **Admin Dashboard Features:** Created a secure `/admin` route that lists all registered users and provides administrative actions, including account deletion and role management.
+
+## Chunk 7: Relational Database Migration & Conversational Threading
+This section documents the transition from flat-file JSON storage to a production-ready **SQL Relational Database** and the implementation of advanced conversational UI patterns.
+
+### Database Architecture & Migration
+* **SQLAlchemy & SQLite Implementation:** Replaced the `users.json` and `chat_history.json` files with a persistent **SQLite** database (`project.db`). This allows for complex queries, data integrity through foreign keys, and significantly faster retrieval times.
+* **Automated Data Migration:** Developed a custom migration script (`migrate_json_to_sql.py`) to parse legacy JSON files and rehydrate the SQL tables without data loss.
+* **Relational Mapping:** Implemented a One-to-Many relationship between `User` and `ChatHistory` models, allowing for robust clinical auditing and data tracking.
+
+### Professional UI & Threading Logic
+* **Conversational Threading (Session IDs):** Implemented **UUID-based Session IDs** to group related chat messages. Unlike the previous version which listed every individual message in the sidebar, the application now groups messages into single "threads" (conversations), providing a professional workspace similar to ChatGPT.
+* **Thread Persistence:** Developed a thread-loading API that allows users to click a previous conversation in the sidebar and instantly reload the entire back-and-forth context of that specific inquiry.
+* **Advanced Admin Integration:** Integrated **Flask-Admin** to provide a "spreadsheet-style" GUI for managing the raw SQL database, while maintaining the custom-branded Admin Dashboard for user role management.
+
+### Chunk 7 Technical Summary
+| Component | Technology | Role |
+| :--- | :--- | :--- |
+| **ORM** | **SQLAlchemy** | Manages Python-to-SQL communication and database schemas. |
+| **Database** | **SQLite** | Local relational storage for users, threads, and manual knowledge. |
+| **Threading** | **UUID4** | Generates unique, non-sequential IDs for grouping chat sessions. |
+| **Session Management** | **Flask-Session** | Persists user identity and "current thread" state across page reloads. |

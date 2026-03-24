@@ -33,6 +33,7 @@ with app.app_context():
     db.create_all()
 
 # --- AUTH ROUTES ---
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -48,6 +49,30 @@ def login():
         return "Invalid credentials", 401
     return render_template('login.html')
 
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        # Check if user already exists
+        if User.query.filter_by(email=email).first():
+            return "User already exists", 400
+            
+        # First user or fitz3663 is admin by default
+        is_first = User.query.first() is None
+        is_admin = True if (email == 'fitz3663@gmail.com' or is_first) else False
+        
+        new_user = User(
+            first_name=request.form.get('first_name'),
+            last_name=request.form.get('last_name'),
+            email=email,
+            password=request.form.get('password'),
+            is_admin=is_admin
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect(url_for('login'))
+    return render_template('signup.html')
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -59,10 +84,14 @@ def new_chat():
     return redirect(url_for('index'))
 
 # --- CHAT & HISTORY ---
+
 @app.route('/')
 def index():
     if 'user_id' not in session: return redirect(url_for('login'))
-    if session.get('user_email') == 'fitz3663@gmail.com': session['is_admin'] = True
+    
+    # Emergency Admin Override for Cody
+    if session.get('user_email') == 'fitz3663@gmail.com':
+        session['is_admin'] = True
 
     all_chats = ChatHistory.query.filter_by(user_id=session['user_id']).order_by(ChatHistory.timestamp.desc()).all()
     seen_sessions = set()
@@ -96,7 +125,6 @@ def rename_chat():
     if 'user_id' not in session: return jsonify({"status": "fail"}), 401
     session_id = request.json.get('session_id')
     new_name = request.json.get('new_name')
-    # Update the very first message of the session to change the sidebar title
     first_msg = ChatHistory.query.filter_by(chat_session_id=session_id).first()
     if first_msg:
         first_msg.user_message = new_name
@@ -113,6 +141,7 @@ def delete_chat():
     return jsonify({"status": "success"})
 
 # --- ADMIN PANEL ---
+
 @app.route('/admin')
 def admin_dashboard():
     if not session.get('is_admin'): return "Access Denied", 403
@@ -138,6 +167,7 @@ def delete_user(user_id):
     return redirect(url_for('admin_dashboard'))
 
 # --- KNOWLEDGE SUBMISSION ---
+
 @app.route('/add')
 def add_form():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -153,7 +183,8 @@ def save_item():
     try:
         embedding = model.encode([notes]).tolist()
         collection.add(ids=[entry_id], embeddings=embedding, documents=[notes], metadatas=[{"source": "Manual"}])
-    except: pass
+    except:
+        pass
     return '<script>window.close();</script>'
 
 @app.route('/api/files')
