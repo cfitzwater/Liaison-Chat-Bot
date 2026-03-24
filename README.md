@@ -60,14 +60,6 @@ This section documents the transition to a full-stack **Flask Web Application**,
 * **Deep-Link Citations:** Developed a RAG pipeline that generates clickable **Markdown Hyperlinks**. These use the `#page=X` suffix to open PDFs directly to the cited page.
 * **Asynchronous UX:** Integrated a "Thinking" indicator and **Auto-Scroll** logic for real-time feedback during AI synthesis.
 
-### Technical Implementation Details
-| Feature | Implementation Detail |
-| :--- | :--- |
-| **Framework** | **Flask** (Backend) and **Marked.js** (Frontend Markdown rendering). |
-| **Model** | **Gemini 2.5 Flash**—optimized for speed and reliability. |
-| **Search Depth** | Configured `n_results=4` to capture cross-references across multiple document pages. |
-| **Security** | Used `.env` for key management and `target="_blank"` for secure external link handling. |
-
 ## Chunk 5: Knowledge Entry System & Form Data Handling
 This section documents the implementation of the manual knowledge entry portal, meeting the technical requirements for form handling and data extraction.
 
@@ -90,28 +82,32 @@ This section documents the implementation of a professional multi-user environme
 * **Personalized UX & Account Accountability:**
     * **Contextual Greetings:** The application uses Jinja2 to display personalized greetings (e.g., "Welcome, Cody!") based on session data.
     * **Automated Form Attribution:** The "Add Knowledge" portal now auto-fills the `user_name` and `email` fields using session variables, ensuring every manual clinical entry is correctly attributed to the logged-in user.
-* **Conversation Management (CRUD for History):**
-    * **Retrieval:** Users can view a persistent list of their previous conversations in the sidebar.
-    * **Rename/Delete:** Implemented JavaScript and Flask routes allowing users to rename chat titles for better organization or delete them entirely to manage their data footprint.
-* **Admin Dashboard Features:** Created a secure `/admin` route that lists all registered users and provides administrative actions, including account deletion and role management.
 
-## Chunk 7: Relational Database Migration & Conversational Threading
+---
+
+## Chunk 7: Data Migration & Relational Threading
 This section documents the transition from flat-file JSON storage to a production-ready **SQL Relational Database** and the implementation of advanced conversational UI patterns.
 
 ### Database Architecture & Migration
-* **SQLAlchemy & SQLite Implementation:** Replaced the `users.json` and `chat_history.json` files with a persistent **SQLite** database (`project.db`). This allows for complex queries, data integrity through foreign keys, and significantly faster retrieval times.
-* **Automated Data Migration:** Developed a custom migration script (`migrate_json_to_sql.py`) to parse legacy JSON files and rehydrate the SQL tables without data loss.
-* **Relational Mapping:** Implemented a One-to-Many relationship between `User` and `ChatHistory` models, allowing for robust clinical auditing and data tracking.
+* **SQLAlchemy & SQLite Implementation:** Replaced legacy JSON files with a persistent **SQLite** database (`project.db`). This allows for relational data integrity, foreign key constraints, and faster retrieval for clinical auditing.
+* **Relational Mapping:** Implemented a **One-to-Many** relationship between `User` and `ChatHistory` models. This ensures every chat session and manual entry is permanently tied to a specific clinical contributor.
+* **Object-Relational Mapping (ORM):** Leveraged **SQLAlchemy** to manage Python-to-SQL communication, improving scalability while maintaining code readability.
 
 ### Professional UI & Threading Logic
-* **Conversational Threading (Session IDs):** Implemented **UUID-based Session IDs** to group related chat messages. Unlike the previous version which listed every individual message in the sidebar, the application now groups messages into single "threads" (conversations), providing a professional workspace similar to ChatGPT.
-* **Thread Persistence:** Developed a thread-loading API that allows users to click a previous conversation in the sidebar and instantly reload the entire back-and-forth context of that specific inquiry.
-* **Advanced Admin Integration:** Integrated **Flask-Admin** to provide a "spreadsheet-style" GUI for managing the raw SQL database, while maintaining the custom-branded Admin Dashboard for user role management.
+* **UUID-Based Conversational Threading:** Implemented **UUID4 Session IDs** to group related messages into "threads." This mirrors professional workspace patterns, allowing users to organize inquiries by specific patients or protocols.
+* **Thread Persistence & Management:** * **Contextual Retrieval:** Users can click previous threads in the sidebar to instantly reload the full context of a specific inquiry.
+    * **Sidebar Refinement:** Developed a sidebar with **Hover-Action Tooltips** for Renaming and Deleting threads, keeping the clinical workspace clutter-free.
+* **Advanced Admin Integration:** Integrated **Flask-Admin** to provide a secure GUI (`/admin_db`) for managing raw SQL tables, while maintaining a branded **User Management Dashboard** (`/admin`) for role-based access control.
+
+### Contributor-Based Metadata Logic
+* **Smart Citation Attribution:** Refined the RAG pipeline to distinguish between official documentation and internal team knowledge. 
+    * **PDF Sources:** Generate deep-link Markdown hyperlinks including `#page=X` suffixes for immediate document verification.
+    * **Manual Entries:** Automatically extract the `first_name` and `last_name` from the active session to "stamp" new knowledge. The AI cites these specifically as **"Source: Contributor: [Full Name]"**, ensuring clinical accountability for every piece of shared information.
 
 ### Chunk 7 Technical Summary
 | Component | Technology | Role |
 | :--- | :--- | :--- |
-| **ORM** | **SQLAlchemy** | Manages Python-to-SQL communication and database schemas. |
-| **Database** | **SQLite** | Local relational storage for users, threads, and manual knowledge. |
-| **Threading** | **UUID4** | Generates unique, non-sequential IDs for grouping chat sessions. |
-| **Session Management** | **Flask-Session** | Persists user identity and "current thread" state across page reloads. |
+| **ORM** | **SQLAlchemy** | Manages database schemas and relational data mapping. |
+| **Database** | **SQLite** | Local relational storage for users, threads, and knowledge. |
+| **Metadata API** | **ChromaDB** | Stores "Contributor" strings for real-time AI source attribution. |
+| **Session Tracking** | **UUID4** | Generates unique IDs to group chat messages into cohesive threads. |
