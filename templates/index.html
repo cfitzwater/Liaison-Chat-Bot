@@ -40,7 +40,7 @@
         {% if session.get('is_admin') %}
             <a href="/admin" class="nav-link" style="color: #ffcc00;">Admin Panel</a>
         {% endif %}
-        <a onclick="location.reload()" class="nav-link">New Chat</a>
+        <a href="/new_chat" class="nav-link">New Chat</a>
         <a href="/add" class="nav-link" target="_blank">Add Knowledge</a>
         <a href="/logout" class="nav-link" style="color: #ff9999;">Logout</a>
     </div>
@@ -51,10 +51,10 @@
         <h3>Previous Conversations</h3>
         <div class="history-list">
             {% for chat in history %}
-            <div class="history-item" onclick="loadHistory(this)" data-user="{{ chat.user }}" data-bot="{{ chat.bot }}" data-ts="{{ chat.timestamp }}">
+            <div class="history-item" onclick="loadHistory(this)" data-session-id="{{ chat.chat_session_id }}">
                 <div style="flex: 1; overflow: hidden;">
-                    <small style="color: #666; font-size: 0.7rem;">{{ chat.timestamp }}</small><br>
-                    <strong class="display-title">{{ chat.user[:25] }}...</strong>
+                    <small style="color: #666; font-size: 0.7rem;">{{ chat.timestamp.strftime('%Y-%m-%d %H:%M') if chat.timestamp else '' }}</small><br>
+                    <strong class="display-title">{{ chat.user_message[:25] }}...</strong>
                 </div>
                 <div class="action-btns">
                     <button class="btn-icon" onclick="event.stopPropagation(); renameHistory(this.closest('.history-item'))">✏️</button>
@@ -88,40 +88,43 @@
     renderer.link = ({href, text}) => `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
     marked.setOptions({ renderer: renderer });
 
-    function loadHistory(element) {
-        const userMsg = element.getAttribute('data-user');
-        const botMsg = element.getAttribute('data-bot');
+    async function loadHistory(element) {
+        const sessionId = element.getAttribute('data-session-id');
+        const res = await fetch(`/get_session/${sessionId}`);
+        if (!res.ok) return;
+        const messages = await res.json();
         const chatWindow = document.getElementById('chat-messages');
         chatWindow.innerHTML = '';
-        addMessage(userMsg, 'user-message');
-        addMessage(botMsg, 'bot-message', true);
-    }
-
-    async function deleteHistory(element) {
-        if (!confirm("Delete this chat?")) return;
-        const ts = element.getAttribute('data-ts');
-        const res = await fetch('/delete_chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({timestamp: ts})
+        messages.forEach(m => {
+            addMessage(m.user, 'user-message');
+            addMessage(m.bot, 'bot-message', true);
         });
-        if (res.ok) element.remove();
     }
 
     async function renameHistory(element) {
-        const ts = element.getAttribute('data-ts');
-        const oldName = element.getAttribute('data-user');
+        const sessionId = element.getAttribute('data-session-id');
+        const oldName = element.querySelector('.display-title').innerText;
         const newName = prompt("New title:", oldName);
         if (!newName || newName === oldName) return;
         const res = await fetch('/rename_chat', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({timestamp: ts, new_name: newName})
+            body: JSON.stringify({session_id: sessionId, new_name: newName})
         });
         if (res.ok) {
-            element.setAttribute('data-user', newName);
             element.querySelector('.display-title').innerText = newName.substring(0, 25) + "...";
         }
+    }
+
+    async function deleteHistory(element) {
+        if (!confirm("Delete this entire conversation?")) return;
+        const sessionId = element.getAttribute('data-session-id');
+        const res = await fetch('/delete_chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({session_id: sessionId})
+        });
+        if (res.ok) element.remove();
     }
 
     async function sendMessage() {
