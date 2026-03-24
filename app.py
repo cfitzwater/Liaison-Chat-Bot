@@ -17,9 +17,6 @@ collection = client.get_or_create_collection("liaison_library")
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def search_documents_web(query):
-    """
-    Restored search function using gemini-2.5-flash and pre-formatted links.
-    """
     # 3. Create query embedding
     query_embedding = model.encode([query])
     
@@ -32,17 +29,24 @@ def search_documents_web(query):
     if not results['documents'][0]:
         return "I'm sorry, I couldn't find any information in the clinical library."
 
-    # 5. Build context & PRE-FORMAT LINKS (The stuff that makes them clickable)
+    # 5. Build context with "Smart Citations"
     context = ""
-    for i, doc in enumerate(results['documents'][0]):
+    for i in range(len(results['documents'][0])):
+        doc_text = results['documents'][0][i]
         meta = results['metadatas'][0][i]
-        clean_filename = os.path.basename(meta.get('source', 'Unknown'))
-        page_num = meta.get('page', 'Unknown')
+        source = meta.get('source', 'Unknown')
         
-        # This string is what the AI will copy/paste
-        citation_link = f"[Source: {clean_filename}, Page: {page_num}](/library/{clean_filename}#page={page_num})"
+        # LOGIC: Check if this is a manual entry vs a PDF file
+        if "Contributor:" in source:
+            # Manual entry - just show the name
+            citation_label = f"**Source: {source}**"
+        else:
+            # PDF File - Create the clickable deep link
+            clean_file = os.path.basename(source)
+            page = meta.get('page', 'N/A')
+            citation_label = f"[Source: {clean_file}, Page: {page}](http://127.0.0.1:5000/library/{clean_file}#page={page})"
         
-        context += f"REFERENCE LINK: {citation_link}\nCONTENT: {doc}\n\n"
+        context += f"CITATION TO USE: {citation_label}\nCONTENT: {doc_text}\n\n"
 
     # 6. Initialize Gemini 2.5 Flash
     api_key = os.getenv("GEMINI_API_KEY")
@@ -50,17 +54,17 @@ def search_documents_web(query):
     
     prompt = (
         f"You are a Clinical Liaison Bot. Answer the query using ONLY the provided content.\n\n"
-        f"INSTRUCTION: You must cite your work by copy-pasting the 'REFERENCE LINK' "
-        f"provided in the context at the end of your answer. Keep it clickable.\n\n"
+        f"INSTRUCTION: You MUST cite your work by copy-pasting the exact 'CITATION TO USE' "
+        f"provided in the context at the very end of your answer. Keep it clickable.\n\n"
         f"Context:\n{context}\n"
         f"Query: {query}"
     )
 
-    # 7. Execution Loop (Ensuring we use the 2.5 model)
+    # 7. Execution Loop with Exponential Backoff
     for attempt in range(4):
         try:
             response = gen_client.models.generate_content(
-                model='gemini-2.5-flash', # RESTORED TO 2.5
+                model='gemini-2.5-flash',
                 contents=prompt,
                 config={'temperature': 0.1}
             )
@@ -68,9 +72,8 @@ def search_documents_web(query):
         except Exception as e:
             if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                 wait_time = (2 ** attempt) + random.uniform(0, 1)
-                print(f"Retrying in {wait_time:.1f}s...")
                 time.sleep(wait_time)
                 continue
-            return f"Error: {str(e)}"
+            return f"Error connecting to AI: {str(e)}"
 
     return "The system is currently busy. Please try again in a moment."
