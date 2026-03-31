@@ -126,3 +126,32 @@ This section documents the final transition to a fully manageable clinical ecosy
 | **Knowledge Edit** | **AJAX (Fetch)** | Modally-driven text updates with asynchronous UI refresh. |
 | **AI Sync** | **ChromaDB API** | Uses `collection.update()` to sync SQL changes to the Vector space in real-time. |
 | **Tab Persistence** | **LocalStorage** | Maintains active Admin view across browser refreshes for seamless workflow. |
+
+---
+
+## Chunk 8.5: Refinements
+This section documents the final refinements and security enhancements implemented to improve user experience and system security.
+
+### User Interface Enhancements
+* **Navigation Improvements:** Added a "My Knowledge" button to the main chat interface header, providing users with direct access to manage their manual knowledge entries without needing to remember URLs.
+* **Enhanced My Knowledge Display:** Restructured the user knowledge management page to display entries in a table format showing Label, Date, and Notes preview, improving readability and organization.
+* **Editable Labels:** Extended the edit functionality to allow users to modify both the label (title) and notes of their knowledge entries, ensuring complete content control.
+
+### Security & Authentication Refinements
+* **Password Reset System:** Implemented a secure admin-controlled password reset feature that sets temporary passwords to "Liaison1" and enforces immediate password changes upon first login.
+* **Forced Password Change:** Added a mandatory password update flow for reset accounts, redirecting users to a dedicated change password page until they set a new password.
+* **Case-Insensitive Email Handling:** Updated login and signup processes to handle email addresses case-insensitively, preventing authentication issues due to email formatting variations.
+* **Enhanced Error Messaging:** Improved login feedback with clear error messages for invalid credentials, replacing silent failures with user-friendly notifications.
+
+### Data Integrity & Access Control
+* **Secure User Deletion:** Created dedicated user-specific delete routes for knowledge entries, ensuring users can only delete their own contributions and preventing unauthorized access.
+* **Database Schema Updates:** Added new fields to support password reset tracking and improved data relationships for better security.
+* **Vector Database Synchronization:** Maintained real-time updates to ChromaDB embeddings when users edit or delete their entries, keeping the AI search index current.
+
+### Chunk 8.5 Technical Summary
+| Component | Implementation | Logic |
+| :--- | :--- | :--- |
+| **Password Reset** | **Werkzeug Security** | Hashed password storage with forced change workflow. |
+| **User CRUD Security** | **Session Verification** | Ownership checks ensure users only modify their own data. |
+| **Email Normalization** | **String Processing** | Lowercase conversion for consistent email handling. |
+| **UI Navigation** | **Header Links** | Direct access buttons for improved user experience. |
