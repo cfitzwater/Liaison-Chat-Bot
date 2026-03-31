@@ -2,6 +2,7 @@ import os
 import uuid
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory, session
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from pypdf import PdfReader
 from models import db, User, ChatHistory, LibraryEntry, LibraryFile
 
@@ -28,24 +29,58 @@ with app.app_context():
 # --- AUTH & SIGNUP ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    error = None
     if request.method == 'POST':
-        user = User.query.filter_by(email=request.form.get('email'), password=request.form.get('password')).first()
+        email = request.form.get('email').lower()
+        password = request.form.get('password')
+        user = User.query.filter_by(email=email).first()
         if user and user.is_active:
-            session.update({'user_id': user.id, 'user_email': user.email, 'first_name': user.first_name, 'last_name': user.last_name, 'is_admin': user.is_admin})
-            return redirect(url_for('index'))
-    return render_template('login.html')
+            if user.password == password or check_password_hash(user.password, password):
+                # Migrate plain password to hash if it was plain
+                if user.password == password:
+                    user.password = generate_password_hash(password)
+                    db.session.commit()
+                session.update({'user_id': user.id, 'user_email': user.email, 'first_name': user.first_name, 'last_name': user.last_name, 'is_admin': user.is_admin})
+                if user.force_password_change:
+                    return redirect(url_for('change_password'))
+                return redirect(url_for('index'))
+            else:
+                error = "Invalid email or password."
+        else:
+            error = "Invalid email or password."
+    return render_template('login.html', error=error)
+
+@app.route('/change_password', methods=['GET', 'POST'])
+def change_password():
+    if not session.get('user_id'):
+        return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    if not user or not user.force_password_change:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if new_password != confirm_password:
+            return render_template('change_password.html', error="Passwords do not match.")
+        if len(new_password) < 6:
+            return render_template('change_password.html', error="Password must be at least 6 characters.")
+        user.password = generate_password_hash(new_password)
+        user.force_password_change = False
+        db.session.commit()
+        return redirect(url_for('index'))
+    return render_template('change_password.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        email = request.form.get('email')
+        email = request.form.get('email').lower()
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             if not existing_user.is_active:
                 # Reactivate the user
                 existing_user.first_name = request.form.get('first_name')
                 existing_user.last_name = request.form.get('last_name')
-                existing_user.password = request.form.get('password')
+                existing_user.password = generate_password_hash(request.form.get('password'))
                 existing_user.is_active = True
                 db.session.commit()
                 return redirect(url_for('login'))
@@ -57,7 +92,7 @@ def signup():
             is_admin = (email == 'fitz3663@gmail.com' or User.query.first() is None)
             new_user = User(
                 first_name=request.form.get('first_name'), last_name=request.form.get('last_name'),
-                email=email, password=request.form.get('password'), is_admin=is_admin
+                email=email, password=generate_password_hash(request.form.get('password')), is_admin=is_admin
             )
             db.session.add(new_user)
             db.session.commit()
@@ -142,15 +177,25 @@ def my_knowledge():
 def edit_my_knowledge(entry_id):
     entry = db.session.get(LibraryEntry, entry_id)
     if entry and entry.user_id == session.get('user_id'):
+        new_label = request.json.get('label')
         new_notes = request.json.get('notes')
+        entry.label = new_label
         entry.notes = new_notes
         db.session.commit()
         contributor = f"{session.get('first_name')} {session.get('last_name')}"
-        content = f"LABEL: {entry.label}\nCONTRIBUTOR: {contributor}\nNOTES: {new_notes}"
+        content = f"LABEL: {new_label}\nCONTRIBUTOR: {contributor}\nNOTES: {new_notes}"
         collection.update(ids=[entry_id], embeddings=model.encode([content]).tolist(), documents=[content])
         return jsonify({"status": "success"})
     return jsonify({"status": "denied"}), 403
-
+@app.route('/delete_my_knowledge/<entry_id>', methods=['POST'])
+def delete_my_knowledge(entry_id):
+    entry = db.session.get(LibraryEntry, entry_id)
+    if entry and entry.user_id == session.get('user_id'):
+        db.session.delete(entry)
+        db.session.commit()
+        collection.delete(ids=[entry_id])
+        return jsonify({"status": "success"})
+    return jsonify({"status": "error"}), 403
 # --- ADMIN PANEL ---
 @app.route('/admin')
 def admin_dashboard():
@@ -172,6 +217,16 @@ def toggle_admin(user_id):
     if user and user.email != session.get('user_email'):
         user.is_admin = not user.is_admin
         db.session.commit(); return jsonify({"status": "success"})
+    return jsonify({"status": "error"}), 400
+
+@app.route('/admin/reset_password/<int:user_id>', methods=['POST'])
+def admin_reset_password(user_id):
+    user = db.session.get(User, user_id)
+    if user:
+        user.password = generate_password_hash('Liaison1')
+        user.force_password_change = True
+        db.session.commit()
+        return jsonify({"status": "success"})
     return jsonify({"status": "error"}), 400
 
 @app.route('/admin/upload', methods=['POST'])
@@ -243,11 +298,13 @@ def admin_edit_entry(entry_id):
     entry = db.session.get(LibraryEntry, entry_id)
     if entry:
         new_notes = request.json.get('notes')
+        new_label = request.json.get('label')
         entry.notes = new_notes
+        entry.label = new_label
         db.session.commit()
         contributor = f"{entry.contributor.first_name} {entry.contributor.last_name}"
-        content = f"LABEL: {entry.label}\nCONTRIBUTOR: {contributor}\nNOTES: {new_notes}"
-        collection.update(ids=[entry_id], embeddings=model.encode([content]).tolist(), documents=[content])
+        content = f"LABEL: {new_label}\nCONTRIBUTOR: {contributor}\nNOTES: {new_notes}"
+        collection.update(ids=[entry_id], embeddings=model.encode([content]).tolist(), documents=[content], metadatas=[{"source": f"Contributor: {contributor} - {new_label}"}])
         return jsonify({"status": "success"})
     return jsonify({"status": "error"}), 404
 

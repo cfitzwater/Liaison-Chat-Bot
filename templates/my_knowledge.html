@@ -15,22 +15,37 @@
         <p>Manage, edit, or delete your entries below.</p>
         <a href="/" class="btn btn-secondary mb-3">Back to Chat</a>
 
-        <table class="table">Gemini logo
-            {% for entry in entries %}
-            <tr id="row-{{ entry.id }}">
-                <td>{{ entry.notes }}</td>
-                <td>
-                    <button class="btn btn-primary btn-sm" onclick="openEdit('{{ entry.id }}', `{{ entry.notes }}`)">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteMe('{{ entry.id }}')">Delete</button>
-                </td>
-            </tr>
-            {% endfor %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Label</th>
+                    <th>Date</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr id="row-{{ entry.id }}">
+                    <td>{{ entry.label or 'No Label' }}</td>
+                    <td>{{ entry.timestamp.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ entry.notes[:100] }}{% if entry.notes|length > 100 %}...{% endif %}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="openEdit('{{ entry.id }}', `{{ entry.label or '' }}`, `{{ entry.notes }}`)">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteMe('{{ entry.id }}')">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 
     <div id="editModal">
         <div class="modal-body">
             <h3>Edit Entry</h3>
+            <label>Label:</label><br>
+            <input type="text" id="editLabel" style="width:100%; margin-bottom:10px;"><br>
+            <label>Notes:</label><br>
             <textarea id="editText" rows="8" style="width:100%"></textarea><br><br>
             <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
             <button class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
@@ -39,19 +54,20 @@
 
     <script>
         let activeId = null;
-        function openEdit(id, text) { activeId = id; document.getElementById('editText').value = text; document.getElementById('editModal').style.display='block'; }
+        function openEdit(id, label, text) { activeId = id; document.getElementById('editLabel').value = label; document.getElementById('editText').value = text; document.getElementById('editModal').style.display='block'; }
         function closeEdit() { document.getElementById('editModal').style.display='none'; }
         
         async function saveEdit() {
+            const label = document.getElementById('editLabel').value;
             const notes = document.getElementById('editText').value;
             await fetch(`/edit_my_knowledge/${activeId}`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({notes})
+                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({label, notes})
             });
             location.reload();
         }
         async function deleteMe(id) {
             if(confirm("Delete your entry?")) {
-                const res = await fetch(`/admin/delete_entry/${id}`, {method:'POST'});
+                const res = await fetch(`/delete_my_knowledge/${id}`, {method:'POST'});
                 if(res.ok) document.getElementById('row-'+id).remove();
             }
         }

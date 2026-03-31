@@ -41,6 +41,7 @@
                 <td>{{ user.email }}</td>
                 <td>
                     <button class="btn" style="background:var(--blue);" onclick="toggleAdmin('{{ user.id }}')">Toggle Role</button>
+                    <button class="btn" style="background:var(--green);" onclick="resetPassword('{{ user.id }}')">Reset Password</button>
                     <button class="btn" style="background:var(--red);" onclick="deleteUser('{{ user.id }}')">Delete User</button>
                 </td>
             </tr>
@@ -50,15 +51,27 @@
 
     <div id="tab-entries" class="tab-content">
         <table>
-            {% for entry in entries %}
-            <tr id="entry-{{ entry.id }}">
-                <td>{{ entry.notes[:100] }}...</td>
-                <td>
-                    <button class="btn" style="background:var(--blue);" onclick="openEdit('{{ entry.id }}', `{{ entry.notes }}`)">Edit</button>
-                    <button class="btn" style="background:var(--red);" onclick="deleteEntry('{{ entry.id }}')">Delete</button>
-                </td>
-            </tr>
-            {% endfor %}
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Contributor</th>
+                    <th>Date Entered</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr id="entry-{{ entry.id }}">
+                    <td>{{ entry.label or 'No Title' }}</td>
+                    <td>{{ entry.contributor.first_name }} {{ entry.contributor.last_name }}</td>
+                    <td>{{ entry.timestamp.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <button class="btn" style="background:var(--blue);" onclick="openEdit('{{ entry.id }}', `{{ entry.notes }}`, `{{ entry.label or '' }}`)">Edit</button>
+                        <button class="btn" style="background:var(--red);" onclick="deleteEntry('{{ entry.id }}')">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 
@@ -81,6 +94,9 @@
 <div id="editModal">
     <div class="modal-body">
         <h3>Edit Knowledge Entry</h3>
+        <label>Title:</label><br>
+        <input type="text" id="editTitle" style="width:100%; border:1px solid #ddd; padding:10px; margin-bottom:10px;"><br>
+        <label>Notes:</label><br>
         <textarea id="editText" rows="8" style="width:100%; border:1px solid #ddd; padding:10px;"></textarea><br><br>
         <button class="btn" style="background:var(--blue);" onclick="saveEdit()">Save Changes</button>
         <button class="btn" style="background:var(--gray);" onclick="closeEdit()">Cancel</button>
@@ -99,12 +115,14 @@
     window.onload = () => { if(localStorage.getItem('adminActiveTab')) showTab(localStorage.getItem('adminActiveTab')); };
 
     async function toggleAdmin(id) { await fetch(`/toggle_admin/${id}`, {method:'POST'}); location.reload(); }
+    async function resetPassword(id) { if(confirm("Reset password to Liaison1?")) { await fetch(`/admin/reset_password/${id}`, {method:'POST'}); alert('Password reset to Liaison1'); } }
     async function deleteUser(id) { if(confirm("Delete user?")) { await fetch(`/admin/delete_user/${id}`, {method:'POST'}); document.getElementById('user-'+id).remove(); } }
-    function openEdit(id, text) { activeEditId = id; document.getElementById('editText').value = text; document.getElementById('editModal').style.display='block'; }
+    function openEdit(id, text, label) { activeEditId = id; document.getElementById('editText').value = text; document.getElementById('editTitle').value = label; document.getElementById('editModal').style.display='block'; }
     function closeEdit() { document.getElementById('editModal').style.display='none'; }
     async function saveEdit() {
         const notes = document.getElementById('editText').value;
-        await fetch(`/admin/edit_entry/${activeEditId}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({notes})});
+        const label = document.getElementById('editTitle').value;
+        await fetch(`/admin/edit_entry/${activeEditId}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({notes, label})});
         location.reload();
     }
     async function deleteEntry(id) { if(confirm("Delete?")) { await fetch(`/admin/delete_entry/${id}`, {method:'POST'}); document.getElementById('entry-'+id).remove(); } }

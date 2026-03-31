@@ -13,6 +13,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(100), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
+    force_password_change = db.Column(db.Boolean, default=False)
     
     # Relationships
     chats = db.relationship('ChatHistory', backref='user', lazy=True, cascade="all, delete-orphan")
