@@ -95,7 +95,8 @@ This section documents the transition from flat-file JSON storage to a productio
 
 ### Professional UI & Threading Logic
 * **UUID-Based Conversational Threading:** Implemented **UUID4 Session IDs** to group related messages into "threads." This mirrors professional workspace patterns, allowing users to organize inquiries by specific patients or protocols.
-* **Thread Persistence & Management:** * **Contextual Retrieval:** Users can click previous threads in the sidebar to instantly reload the full context of a specific inquiry.
+* **Thread Persistence & Management:** 
+    * **Contextual Retrieval:** Users can click previous threads in the sidebar to instantly reload the full context of a specific inquiry.
     * **Sidebar Refinement:** Developed a sidebar with **Hover-Action Tooltips** for Renaming and Deleting threads, keeping the clinical workspace clutter-free.
 * **Advanced Admin Integration:** Integrated **Flask-Admin** to provide a secure GUI (`/admin_db`) for managing raw SQL tables, while maintaining a branded **User Management Dashboard** (`/admin`) for role-based access control.
 
@@ -104,10 +105,24 @@ This section documents the transition from flat-file JSON storage to a productio
     * **PDF Sources:** Generate deep-link Markdown hyperlinks including `#page=X` suffixes for immediate document verification.
     * **Manual Entries:** Automatically extract the `first_name` and `last_name` from the active session to "stamp" new knowledge. The AI cites these specifically as **"Source: Contributor: [Full Name]"**, ensuring clinical accountability for every piece of shared information.
 
-### Chunk 7 Technical Summary
-| Component | Technology | Role |
+---
+
+## Chunk 8: Implementing CRUD
+This section documents the final transition to a fully manageable clinical ecosystem through a comprehensive Create, Read, Update, and Delete (CRUD) framework.
+
+### Admin-Level User & File CRUD
+* **Active User Management:** Expanded the Admin Dashboard to include secure **User Deletion** and role-toggling logic. This ensures administrators can offboard staff or adjust permissions without manual database edits.
+* **File Lifecycle Control:** Implemented a Document Management tab that allows admins to upload official PDFs and **Delete** outdated files. The system automatically handles the removal of the physical file from the server while purging associated vector embeddings from ChromaDB.
+
+### Collaborative Knowledge CRUD
+* **Asynchronous Editing (Update):** Developed a modally-driven **Edit System** for manual knowledge entries. Both Admins (on the dashboard) and Users (on the `/my_knowledge` page) can now update clinical notes. 
+* **Real-Time Vector Re-Indexing:** Upon saving an edit, the application triggers a dual-update: the new text is saved to the SQL database, and the existing entry in **ChromaDB** is updated using its unique UUID. This ensures the AI assistant "re-learns" the corrected information immediately without a system restart.
+* **Personalized Contribution Management:** Users are granted a "My Knowledge" view where they can perform **Read** and **Delete** operations on their specific contributions, promoting data cleanliness and clinical accuracy across the team.
+
+### Chunk 8 Technical Summary
+| Component | Implementation | Logic |
 | :--- | :--- | :--- |
-| **ORM** | **SQLAlchemy** | Manages database schemas and relational data mapping. |
-| **Database** | **SQLite** | Local relational storage for users, threads, and knowledge. |
-| **Metadata API** | **ChromaDB** | Stores "Contributor" strings for real-time AI source attribution. |
-| **Session Tracking** | **UUID4** | Generates unique IDs to group chat messages into cohesive threads. |
+| **User Deletion** | **SQLAlchemy** | Secured back-end route with `is_admin` verification. |
+| **Knowledge Edit** | **AJAX (Fetch)** | Modally-driven text updates with asynchronous UI refresh. |
+| **AI Sync** | **ChromaDB API** | Uses `collection.update()` to sync SQL changes to the Vector space in real-time. |
+| **Tab Persistence** | **LocalStorage** | Maintains active Admin view across browser refreshes for seamless workflow. |
