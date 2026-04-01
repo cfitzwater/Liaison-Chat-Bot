@@ -212,3 +212,49 @@ This section documents the comprehensive security framework implemented to prote
 | **Input Validation** | **Type Checking & Sanitization** | Injection attacks, malformed data |
 | **Database Security** | **SQLAlchemy ORM** | SQL injection, data corruption |
 | **Authentication Flow** | **Multi-step Verification** | Credential stuffing, account takeover |
+
+## Chunk 10: RESTful API Implementation
+This section documents the addition of a RESTful API component to make the application's data available to other programs, fulfilling the technical challenge requirements.
+
+### API Design & Architecture
+* **Endpoint Prefix:** All API routes are grouped under `/api/v1/` for versioning and organization.
+* **Authentication Protection:** API endpoints require valid user sessions, returning `401 Unauthorized` for unauthenticated requests.
+* **JSON Response Format:** All responses are structured as JSON objects with consistent field naming.
+* **HTTP Status Codes:** Proper status codes (200 OK, 401 Unauthorized, 404 Not Found) for different scenarios.
+
+### API Endpoints
+#### GET /api/v1/knowledge
+Returns a JSON array of all knowledge entries for the authenticated user.
+
+**Authentication:** Required (session-based)  
+**Response Format:**
+```json
+[
+  {
+    "id": "uuid-string",
+    "label": "Entry Label",
+    "notes": "Entry notes content",
+    "timestamp": "2024-01-01T12:00:00"
+  }
+]
+```
+
+#### GET /api/v1/knowledge/<entry_id>
+Returns a single knowledge entry by ID for the authenticated user.
+
+**Authentication:** Required (session-based)  
+**Error Handling:** Returns `404 Not Found` if the entry doesn't exist or doesn't belong to the user.  
+**Response Format:**
+```json
+{
+  "id": "uuid-string",
+  "label": "Entry Label",
+  "notes": "Entry notes content",
+  "timestamp": "2024-01-01T12:00:00"
+}
+```
+
+### Implementation Details
+* **Data Ownership:** All API responses are filtered to only include entries owned by the authenticated user.
+* **Timestamp Formatting:** Timestamps are returned in ISO 8601 format for API compatibility.
+* **Error Responses:** Consistent error structure with descriptive messages and appropriate HTTP status codes.

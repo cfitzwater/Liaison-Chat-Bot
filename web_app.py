@@ -196,6 +196,37 @@ def delete_my_knowledge(entry_id):
         collection.delete(ids=[entry_id])
         return jsonify({"status": "success"})
     return jsonify({"status": "error"}), 403
+
+# --- API ENDPOINTS ---
+@app.route('/api/v1/knowledge')
+def api_get_knowledge():
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    entries = LibraryEntry.query.filter_by(user_id=session['user_id']).all()
+    result = []
+    for entry in entries:
+        result.append({
+            "id": entry.id,
+            "label": entry.label,
+            "notes": entry.notes,
+            "timestamp": entry.timestamp.isoformat()
+        })
+    return jsonify(result)
+
+@app.route('/api/v1/knowledge/<entry_id>')
+def api_get_knowledge_item(entry_id):
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    entry = db.session.get(LibraryEntry, entry_id)
+    if not entry or entry.user_id != session['user_id']:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify({
+        "id": entry.id,
+        "label": entry.label,
+        "notes": entry.notes,
+        "timestamp": entry.timestamp.isoformat()
+    })
+
 # --- ADMIN PANEL ---
 @app.route('/admin')
 def admin_dashboard():
