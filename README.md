@@ -155,3 +155,60 @@ This section documents the final refinements and security enhancements implement
 | **User CRUD Security** | **Session Verification** | Ownership checks ensure users only modify their own data. |
 | **Email Normalization** | **String Processing** | Lowercase conversion for consistent email handling. |
 | **UI Navigation** | **Header Links** | Direct access buttons for improved user experience. |
+
+---
+
+## Chunk 9: Program Security
+This section documents the comprehensive security framework implemented to protect user data, ensure authentication integrity, and maintain access control throughout the Liaison Library Bot application.
+
+### Password Security & Hashing
+* **Industry-Standard Password Hashing:** Implemented **Werkzeug Security** library for all password operations, utilizing PBKDF2-based scrypt hashing with 32,768 iterations, 8-byte salt, and 1 parallel factor for maximum security.
+* **Zero Plain-Text Storage:** Passwords are never stored in readable format. All user passwords, including temporary reset passwords ("Liaison1"), are immediately hashed before database storage.
+* **Secure Password Verification:** Login authentication uses `check_password_hash()` for constant-time comparison, preventing timing attacks.
+* **Automatic Migration:** Legacy plain-text passwords are automatically detected and upgraded to hashed versions upon successful login.
+
+### User Input Validation & Sanitization
+* **Email Normalization:** All email addresses are converted to lowercase before storage and comparison, preventing authentication bypasses through case variations.
+* **Password Strength Requirements:** Minimum 6-character password length enforced during account creation and password changes.
+* **File Upload Security:** PDF uploads utilize `secure_filename()` to prevent directory traversal attacks and malicious file naming.
+* **Form Data Handling:** All user inputs are properly retrieved using `request.form.get()` with appropriate type checking.
+
+### Session Management & Authentication
+* **Flask Session Security:** User sessions store authenticated user data (ID, email, name, admin status) with server-side session management.
+* **Session-Based Access Control:** All protected routes verify session existence and validity before granting access.
+* **Forced Password Change Workflow:** Reset accounts are flagged with `force_password_change = True`, automatically redirecting users to a mandatory password update page.
+* **Error Handling:** Clear, non-descriptive error messages prevent information leakage while providing user feedback.
+
+### Access Control & Authorization
+* **Role-Based Permissions:** Admin routes require `session.get('is_admin')` verification, restricting administrative functions to authorized personnel.
+* **Data Ownership Verification:** User-specific operations (edit/delete knowledge entries) include ownership checks (`entry.user_id == session.get('user_id')`) to prevent unauthorized data modification.
+* **Admin Override Capabilities:** Administrators can modify all user data and system settings while maintaining audit trails.
+* **Secure User Deletion:** Soft delete implementation preserves data integrity while removing user access.
+
+### Database Security & Data Integrity
+* **ORM Protection:** SQLAlchemy Object-Relational Mapping prevents SQL injection attacks by using parameterized queries and prepared statements.
+* **Foreign Key Constraints:** Database relationships ensure referential integrity and prevent orphaned records.
+* **Cascading Deletes:** User deletion automatically removes associated chat history and knowledge entries to maintain data consistency.
+* **Transaction Safety:** Database operations use atomic transactions with proper commit/rollback handling.
+
+### Authentication Flow Security
+* **Multi-Factor Validation:** Login requires both valid email and password combination with case-insensitive email matching.
+* **Session Invalidation:** Logout clears all session data, preventing session fixation attacks.
+* **Account Recovery Security:** Password reset generates secure temporary passwords that expire upon first use.
+* **Signup Protection:** Duplicate email prevention and automatic admin assignment for initial user setup.
+
+### Additional Security Measures
+* **Secret Key Protection:** Flask application uses a secure secret key for session encryption and CSRF protection.
+* **Upload Directory Security:** File uploads are restricted to designated directories with proper permissions.
+* **Error Response Sanitization:** API endpoints return appropriate HTTP status codes without exposing internal system details.
+* **Audit Trail Maintenance:** All user actions are timestamped and attributed to specific users for accountability.
+
+### Chunk 9 Security Summary
+| Security Layer | Implementation | Protection Against |
+| :--- | :--- | :--- |
+| **Password Security** | **Werkzeug PBKDF2-scrypt** | Rainbow table attacks, brute force, password theft |
+| **Session Management** | **Flask Sessions** | Session hijacking, fixation attacks |
+| **Access Control** | **Role & Ownership Checks** | Unauthorized data access, privilege escalation |
+| **Input Validation** | **Type Checking & Sanitization** | Injection attacks, malformed data |
+| **Database Security** | **SQLAlchemy ORM** | SQL injection, data corruption |
+| **Authentication Flow** | **Multi-step Verification** | Credential stuffing, account takeover |
