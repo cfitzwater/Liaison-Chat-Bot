@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from pypdf import PdfReader
 from docx import Document
 import openpyxl
+from urllib.parse import quote_plus
 from models import db, User, ChatHistory, LibraryEntry, LibraryFile
 
 # Link to AI Engine
@@ -410,9 +411,77 @@ def admin_delete_entry(entry_id):
         return jsonify({"status": "success"})
     return jsonify({"status": "error"}), 404
 
-@app.route('/library/<filename>')
-def get_pdf(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+def _extract_docx_text(path):
+    try:
+        doc = Document(path)
+        lines = []
+        for paragraph in doc.paragraphs:
+            if paragraph.text.strip():
+                lines.append(paragraph.text)
+
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = ' | '.join(cell.text for cell in row.cells if cell.text.strip())
+                if row_text:
+                    lines.append(row_text)
+
+        return '\n'.join(lines)
+    except Exception as e:
+        print(f"Error extracting DOCX text: {e}")
+        return None
+
+
+def _extract_excel_text(path):
+    try:
+        workbook = openpyxl.load_workbook(path, data_only=True)
+        lines = []
+        for sheet_name in workbook.sheetnames:
+            sheet = workbook[sheet_name]
+            lines.append(f"Sheet: {sheet_name}")
+            for row in sheet.iter_rows(values_only=True):
+                row_text = ' | '.join(str(cell) for cell in row if cell is not None)
+                if row_text.strip():
+                    lines.append(row_text)
+        return '\n'.join(lines)
+    except Exception as e:
+        print(f"Error extracting Excel text: {e}")
+        return None
+
+
+@app.route('/preview/<path:filename>')
+def preview_file(filename):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    abs_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(abs_path):
+        return "File not found", 404
+
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+
+    if ext == 'pdf':
+        # Embed PDF in browser frame when possible
+        return render_template('preview_file.html', filename=filename, content_type='pdf', text=None)
+
+    if ext == 'docx':
+        text = _extract_docx_text(abs_path)
+        if text is None:
+            text = "Unable to extract text from this document. You can download it instead."
+        return render_template('preview_file.html', filename=filename, content_type='text', text=text)
+
+    if ext in ['xlsx', 'xls']:
+        text = _extract_excel_text(abs_path)
+        if text is None:
+            text = "Unable to extract text from this spreadsheet. You can download it instead."
+        return render_template('preview_file.html', filename=filename, content_type='text', text=text)
+
+    # Default fallback to download/view through browser
+    return redirect(url_for('get_file', filename=filename))
+
+
+@app.route('/library/<path:filename>')
+def get_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

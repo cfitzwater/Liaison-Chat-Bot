@@ -82,7 +82,7 @@
         <ul style="list-style: disc; padding-left: 20px; font-size: 0.85rem;">
             {% for file in files %}
             <li style="margin-bottom: 8px;">
-                <a href="/library/{{ file.filename }}" target="_blank" title="{{ file.filename }}" style="color:var(--navy); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; max-width:100%;">{{ file.filename }}</a>
+                <a href="/preview/{{ file.filename }}" target="_blank" title="{{ file.filename }}" style="color:var(--navy); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; max-width:100%;">{{ file.filename }}</a>
             </li>
             {% endfor %}
         </ul>

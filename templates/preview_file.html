@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview {{ filename }}</title>
+    <style>
+        body { background:#f5f7fb; font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1100px; margin: auto; background:white; border-radius:8px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);} 
+        .header { display:flex; justify-content: space-between; align-items:center; margin-bottom: 12px;}
+        .header h2 { margin:0; color:#0b1e47; font-size:1.2rem; }
+        .header a { text-decoration:none; color:#1f5d9a; font-weight:600; }
+        iframe { width:100%; height:78vh; border:1px solid #dce3ed; }
+        pre { white-space: pre-wrap; word-wrap: break-word; background:#fafbff; border:1px solid #e1e6ee; padding:14px; border-radius:6px; max-height:78vh; overflow:auto; }
+        .hint { margin-top: 12px; font-size: 0.9rem; color: #555; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2>Preview: {{ filename }}</h2>
+        <a href="/library/{{ filename }}" target="_blank">Download</a>
+    </div>
+
+    {% if content_type == 'pdf' %}
+        <iframe src="/library/{{ filename }}"></iframe>
+        <div class="hint">If the PDF does not display, click Download and open it in your local PDF reader.</div>
+    {% else %}
+        <pre>{{ text }}</pre>
+        <div class="hint">If you need exact formatting or embedded objects, use Download.</div>
+    {% endif %}
+
+</div>
+</body>
+</html>
