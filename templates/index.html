@@ -40,7 +40,7 @@
 <header>
     <div style="font-size: 1.2rem; font-weight: bold;">Welcome, {{ first_name }}!</div>
     <div class="nav-links">
-        {% if session.get('is_admin') %}<a href="/admin" class="nav-link" style="color: #ffcc00;">Admin Panel</a>{% endif %}
+        {% if session.get('is_admin') %}<a href="/admin" class="nav-link" style="color: #ffcc00;">Admin</a>{% endif %}
         <a href="/new_chat" class="nav-link">New Chat</a>
         <a href="/add_knowledge" class="nav-link" target="_blank">Add Knowledge</a>
         <a href="/my_knowledge" class="nav-link">My Knowledge</a>
@@ -68,7 +68,7 @@
     </div>
 
     <div id="chat-window">
-        <div id="chat-messages"><div class="message bot-message">Hello, I'm ready to help with clinical docs.</div></div>
+        <div id="chat-messages"><div class="message bot-message">Hey there {{ first_name }}! How can I make your day fantastic?</div></div>
         <div id="input-area">
             <div class="input-row">
                 <input type="text" id="user-input" placeholder="Ask about clinical protocols...">
@@ -79,10 +79,10 @@
 
     <div id="resource-sidebar">
         <h3>Library Files</h3>
-        <ul style="list-style: none; padding: 0; font-size: 0.85rem;">
+        <ul style="list-style: disc; padding-left: 20px; font-size: 0.85rem;">
             {% for file in files %}
             <li style="margin-bottom: 8px;">
-                📄 <a href="/library/{{ file.filename }}" target="_blank" style="color:var(--navy); text-decoration:none;">{{ file.filename }}</a>
+                <a href="/library/{{ file.filename }}" target="_blank" title="{{ file.filename }}" style="color:var(--navy); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; max-width:100%;">{{ file.filename }}</a>
             </li>
             {% endfor %}
         </ul>

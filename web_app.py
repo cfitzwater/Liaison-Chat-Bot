@@ -112,7 +112,7 @@ def index():
     for c in chats:
         if c.chat_session_id not in seen:
             history.append(c); seen.add(c.chat_session_id)
-    files = LibraryFile.query.all()
+    files = LibraryFile.query.order_by(LibraryFile.filename).all()
     return render_template('index.html', first_name=session.get('first_name'), history=history, files=files)
 
 @app.route('/chat', methods=['POST'])
@@ -231,7 +231,7 @@ def api_get_knowledge_item(entry_id):
 @app.route('/admin')
 def admin_dashboard():
     if not session.get('is_admin'): return "Denied", 403
-    return render_template('admin.html', users=User.query.filter_by(is_active=True).all(), files=LibraryFile.query.all(), entries=LibraryEntry.query.all())
+    return render_template('admin.html', users=User.query.filter_by(is_active=True).all(), files=LibraryFile.query.order_by(LibraryFile.filename).all(), entries=LibraryEntry.query.all())
 
 @app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
 def admin_delete_user(user_id):
