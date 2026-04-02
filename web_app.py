@@ -4,6 +4,8 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from pypdf import PdfReader
+from docx import Document
+import openpyxl
 from models import db, User, ChatHistory, LibraryEntry, LibraryFile
 
 # Link to AI Engine
@@ -262,6 +264,9 @@ def admin_reset_password(user_id):
 
 @app.route('/admin/upload', methods=['POST'])
 def admin_upload():
+    if not session.get('is_admin'):
+        return "Access denied", 403
+    
     file = request.files.get('file')
     if file:
         fname = secure_filename(file.filename)
@@ -288,19 +293,71 @@ def admin_upload():
         db.session.add(LibraryFile(filename=fname))
         db.session.commit()
         
-        # Ingest the PDF into Chroma
+        # Ingest the document into Chroma based on file type
         try:
-            reader = PdfReader(path)
-            for i, page in enumerate(reader.pages):
-                text = page.extract_text()
-                if text and len(text.strip()) > 50:  # Ignore empty/short pages
-                    chunk_id = f"{fname}_pg_{i}"
+            if fname.lower().endswith('.pdf'):
+                # Process PDF
+                reader = PdfReader(path)
+                for i, page in enumerate(reader.pages):
+                    text = page.extract_text()
+                    if text and len(text.strip()) > 50:  # Ignore empty/short pages
+                        chunk_id = f"{fname}_pg_{i}"
+                        embedding = model.encode([text]).tolist()
+                        collection.add(
+                            ids=[chunk_id],
+                            embeddings=embedding,
+                            documents=[text],
+                            metadatas=[{"source": fname, "page": i + 1}]
+                        )
+            elif fname.lower().endswith('.docx'):
+                # Process Word document
+                doc = Document(path)
+                full_text = []
+                for paragraph in doc.paragraphs:
+                    if paragraph.text.strip():
+                        full_text.append(paragraph.text)
+                
+                # Also extract text from tables
+                for table in doc.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            if cell.text.strip():
+                                full_text.append(cell.text)
+                
+                text = '\n'.join(full_text)
+                if text and len(text.strip()) > 50:
+                    chunk_id = f"{fname}_doc"
                     embedding = model.encode([text]).tolist()
                     collection.add(
                         ids=[chunk_id],
                         embeddings=embedding,
                         documents=[text],
-                        metadatas=[{"source": fname, "page": i + 1}]
+                        metadatas=[{"source": fname, "type": "word"}]
+                    )
+            elif fname.lower().endswith(('.xlsx', '.xls')):
+                # Process Excel file
+                workbook = openpyxl.load_workbook(path, data_only=True)
+                full_text = []
+                
+                for sheet_name in workbook.sheetnames:
+                    sheet = workbook[sheet_name]
+                    full_text.append(f"Sheet: {sheet_name}")
+                    
+                    for row in sheet.iter_rows(values_only=True):
+                        # Convert all values to strings and filter out None values
+                        row_text = [str(cell) for cell in row if cell is not None]
+                        if row_text:
+                            full_text.append(' | '.join(row_text))
+                
+                text = '\n'.join(full_text)
+                if text and len(text.strip()) > 50:
+                    chunk_id = f"{fname}_xls"
+                    embedding = model.encode([text]).tolist()
+                    collection.add(
+                        ids=[chunk_id],
+                        embeddings=embedding,
+                        documents=[text],
+                        metadatas=[{"source": fname, "type": "excel"}]
                     )
         except Exception as e:
             print(f"Error ingesting {fname}: {e}")
@@ -309,6 +366,9 @@ def admin_upload():
 
 @app.route('/admin/delete_file/<int:file_id>', methods=['POST'])
 def admin_delete_file(file_id):
+    if not session.get('is_admin'):
+        return "Access denied", 403
+    
     f_rec = db.session.get(LibraryFile, file_id)
     if f_rec:
         path = os.path.join(app.config['UPLOAD_FOLDER'], f_rec.filename)
