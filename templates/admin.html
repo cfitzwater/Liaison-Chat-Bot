@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Liaison Admin</title>
+    <style>
+        :root { --navy: #0C0050; --blue: #3388DD; --bg: #f4f7f6; --red: #ff4444; --gray: #777; --green: #27ae60; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 40px; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #ddd; }
+        .tab-btn { padding: 10px 20px; border: none; cursor: pointer; background: #eee; font-weight: bold; border-radius: 5px 5px 0 0; }
+        .tab-btn.active { background: var(--navy); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; color: white; margin-left: 10px; }
+        .badge-admin { background: var(--green); }
+        .badge-user { background: var(--gray); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; }
+        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; margin-right: 5px; }
+        #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; }
+        .modal-body { background:white; margin:10% auto; padding:20px; width:50%; border-radius:8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="/" style="text-decoration:none; color:var(--blue);">← Back to Chat</a>
+    <h2 style="margin-top:15px;">Clinical Command Center</h2>
+    
+    <div class="tabs">
+        <button id="btn-users" class="tab-btn active" onclick="showTab('tab-users')">Users</button>
+        <button id="btn-entries" class="tab-btn" onclick="showTab('tab-entries')">Manual Entries</button>
+        <button id="btn-files" class="tab-btn" onclick="showTab('tab-files')">Documents</button>
+    </div>
+
+    <div id="tab-users" class="tab-content active">
+        <table>
+            {% for user in users %}
+            <tr id="user-{{ user.id }}">
+                <td>{{ user.first_name }} {{ user.last_name }} <span class="badge {{ 'badge-admin' if user.is_admin else 'badge-user' }}">{{ 'ADMIN' if user.is_admin else 'USER' }}</span></td>
+                <td>{{ user.email }}</td>
+                <td>
+                    <button class="btn" style="background:var(--blue);" onclick="toggleAdmin('{{ user.id }}')">Toggle Role</button>
+                    <button class="btn" style="background:var(--green);" onclick="resetPassword('{{ user.id }}')">Reset Password</button>
+                    <button class="btn" style="background:var(--red);" onclick="deleteUser('{{ user.id }}')">Delete User</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div id="tab-entries" class="tab-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Contributor</th>
+                    <th>Date Entered</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr id="entry-{{ entry.id }}">
+                    <td>{{ entry.label or 'No Title' }}</td>
+                    <td>{{ entry.contributor.first_name }} {{ entry.contributor.last_name }}</td>
+                    <td>{{ entry.timestamp.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <button class="btn" style="background:var(--blue);" onclick="openEdit('{{ entry.id }}', `{{ entry.notes }}`, `{{ entry.label or '' }}`)">Edit</button>
+                        <button class="btn" style="background:var(--red);" onclick="deleteEntry('{{ entry.id }}')">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div id="tab-files" class="tab-content">
+        <form action="/admin/upload" method="POST" enctype="multipart/form-data" style="margin-bottom:20px;">
+            <input type="file" name="file" required>
+            <button type="submit" class="btn" style="background:var(--blue);">Upload PDF</button>
+        </form>
+        <table>
+            {% for file in files %}
+            <tr id="file-{{ file.id }}">
+                <td>📄 {{ file.filename }}</td>
+                <td><button class="btn" style="background:var(--red);" onclick="deleteFile('{{ file.id }}')">Delete</button></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<div id="editModal">
+    <div class="modal-body">
+        <h3>Edit Knowledge Entry</h3>
+        <label>Title:</label><br>
+        <input type="text" id="editTitle" style="width:100%; border:1px solid #ddd; padding:10px; margin-bottom:10px;"><br>
+        <label>Notes:</label><br>
+        <textarea id="editText" rows="8" style="width:100%; border:1px solid #ddd; padding:10px;"></textarea><br><br>
+        <button class="btn" style="background:var(--blue);" onclick="saveEdit()">Save Changes</button>
+        <button class="btn" style="background:var(--gray);" onclick="closeEdit()">Cancel</button>
+    </div>
+</div>
+
+<script>
+    let activeEditId = null;
+    function showTab(id) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('btn-' + id.split('-')[1]).classList.add('active');
+        localStorage.setItem('adminActiveTab', id);
+    }
+    window.onload = () => { if(localStorage.getItem('adminActiveTab')) showTab(localStorage.getItem('adminActiveTab')); };
+
+    async function toggleAdmin(id) { await fetch(`/toggle_admin/${id}`, {method:'POST'}); location.reload(); }
+    async function resetPassword(id) { if(confirm("Reset password to Liaison1?")) { await fetch(`/admin/reset_password/${id}`, {method:'POST'}); alert('Password reset to Liaison1'); } }
+    async function deleteUser(id) { if(confirm("Delete user?")) { await fetch(`/admin/delete_user/${id}`, {method:'POST'}); document.getElementById('user-'+id).remove(); } }
+    function openEdit(id, text, label) { activeEditId = id; document.getElementById('editText').value = text; document.getElementById('editTitle').value = label; document.getElementById('editModal').style.display='block'; }
+    function closeEdit() { document.getElementById('editModal').style.display='none'; }
+    async function saveEdit() {
+        const notes = document.getElementById('editText').value;
+        const label = document.getElementById('editTitle').value;
+        await fetch(`/admin/edit_entry/${activeEditId}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({notes, label})});
+        location.reload();
+    }
+    async function deleteEntry(id) { if(confirm("Delete?")) { await fetch(`/admin/delete_entry/${id}`, {method:'POST'}); document.getElementById('entry-'+id).remove(); } }
+    async function deleteFile(id) { if(confirm("Delete?")) { await fetch(`/admin/delete_file/${id}`, {method:'POST'}); document.getElementById('file-'+id).remove(); } }
+</script>
+</body>
+</html>
