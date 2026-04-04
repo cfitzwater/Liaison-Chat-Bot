@@ -1,4 +1,4 @@
-# Project Design Document: Liaison Library Bot
+## Project Design Document: Liaison Library Bot
 
 ## Section 1: Project Overview
 **Project Title:** Liaison Library Bot (RAG-Enabled Clinical Assistant)  
