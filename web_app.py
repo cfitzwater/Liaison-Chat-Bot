@@ -2,12 +2,21 @@ import os
 import uuid
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory, session
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
 from pypdf import PdfReader
 from docx import Document
 import openpyxl
 from urllib.parse import quote_plus
 from models import db, User, ChatHistory, LibraryEntry, LibraryFile
+from flasgger import Swagger
+from dotenv import load_dotenv
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Link to AI Engine
 try:
@@ -17,9 +26,34 @@ except ImportError:
     print("CRITICAL: app.py not found.")
 
 app = Flask(__name__)
-app.secret_key = 'liaison_secret_key_123'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project.db'
+swagger = Swagger(app, template={
+    "info": {
+        "title": "Liaison Chat Bot API",
+        "description": "API documentation for the Liaison Chat Bot and Knowledge Library. **Note:** All API endpoints require active session authentication. You must authenticate via the `/login` web interface to obtain a valid session cookie before making API requests.",
+        "version": "1.0.0"
+    }
+})
+app.secret_key = os.getenv('SECRET_KEY', 'liaison_secret_key_123')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///project.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Production Security Settings
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+if os.getenv('FLASK_DEBUG', 'False').lower() not in ('true', '1', 't'):
+    app.config['SESSION_COOKIE_SECURE'] = True
+
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'xlsx', 'xls'}
+
+csrf = CSRFProtect(app)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'library')
@@ -28,9 +62,19 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    
+    # Auto-sync files in the library folder to the database
+    if os.path.exists(app.config['UPLOAD_FOLDER']):
+        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            if filename.startswith('.'): continue
+            if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
+                if not LibraryFile.query.filter_by(filename=filename).first():
+                    db.session.add(LibraryFile(filename=filename))
+        db.session.commit()
 
 # --- AUTH & SIGNUP ---
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     error = None
     if request.method == 'POST':
@@ -74,6 +118,7 @@ def change_password():
     return render_template('change_password.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def signup():
     if request.method == 'POST':
         email = request.form.get('email').lower()
@@ -116,12 +161,55 @@ def index():
         if c.chat_session_id not in seen:
             history.append(c); seen.add(c.chat_session_id)
     files = LibraryFile.query.order_by(LibraryFile.filename).all()
-    return render_template('index.html', first_name=session.get('first_name'), history=history, files=files)
+    return render_template('index.html', first_name=session.get('first_name'), last_name=session.get('last_name'), history=history, files=files)
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    """
+    Send a message to the chat bot
+    ---
+    tags:
+      - Chat
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "What is the employee health requirement?"
+    responses:
+      200:
+        description: The bot's response
+        schema:
+          type: object
+          properties:
+            answer:
+              type: string
+              example: "Employees must complete a health screening..."
+      400:
+        description: Bad Request (missing or invalid message payload)
+        schema:
+          type: object
+          properties:
+            answer:
+              type: string
+              example: "Error: Please provide a valid message."
+      401:
+        description: Unauthorized (missing or expired session cookie)
+    """
+    if 'user_id' not in session:
+        return jsonify({"answer": "Your session has expired. Please log in again."}), 401
+        
     if 'current_chat_id' not in session: session['current_chat_id'] = str(uuid.uuid4())
-    user_msg = request.json.get('message')
+    
+    data = request.get_json(silent=True)
+    user_msg = data.get('message') if data else None
+    if not user_msg:
+        return jsonify({"answer": "Error: Please provide a valid message."}), 400
+        
     response = search_documents_web(user_msg)
     new_chat = ChatHistory(user_id=session['user_id'], chat_session_id=session['current_chat_id'], user_message=user_msg, bot_response=response)
     db.session.add(new_chat); db.session.commit()
@@ -203,6 +291,34 @@ def delete_my_knowledge(entry_id):
 # --- API ENDPOINTS ---
 @app.route('/api/v1/knowledge')
 def api_get_knowledge():
+    """
+    Get all knowledge entries for the current user
+    ---
+    tags:
+      - Knowledge
+    responses:
+      200:
+        description: A list of knowledge entries
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "a03e2ede-68b9-45a7-b2e1-64da1d314e20"
+              label:
+                type: string
+                example: "Project Guidelines"
+              notes:
+                type: string
+                example: "Always use Python 3.10+"
+              timestamp:
+                type: string
+                example: "2026-04-17T12:00:00"
+      401:
+        description: Unauthorized
+    """
     if 'user_id' not in session:
         return jsonify({"error": "Unauthorized"}), 401
     entries = LibraryEntry.query.filter_by(user_id=session['user_id']).all()
@@ -218,6 +334,36 @@ def api_get_knowledge():
 
 @app.route('/api/v1/knowledge/<entry_id>')
 def api_get_knowledge_item(entry_id):
+    """
+    Get a specific knowledge entry by ID
+    ---
+    tags:
+      - Knowledge
+    parameters:
+      - name: entry_id
+        in: path
+        type: string
+        required: true
+        description: The ID of the knowledge entry
+    responses:
+      200:
+        description: A single knowledge entry
+        schema:
+          type: object
+          properties:
+            id:
+              type: string
+            label:
+              type: string
+            notes:
+              type: string
+            timestamp:
+              type: string
+      401:
+        description: Unauthorized
+      404:
+        description: Knowledge entry not found
+    """
     if 'user_id' not in session:
         return jsonify({"error": "Unauthorized"}), 401
     entry = db.session.get(LibraryEntry, entry_id)
@@ -270,6 +416,10 @@ def admin_upload():
     
     file = request.files.get('file')
     if file:
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if ext not in ALLOWED_EXTENSIONS:
+            return "Invalid file type. Only PDF, DOCX, and Excel files are allowed.", 400
+            
         fname = secure_filename(file.filename)
         path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
         
@@ -484,4 +634,5 @@ def get_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() in ('true', '1', 't')
+    app.run(debug=debug_mode, port=5000)

@@ -3,36 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Liaison Library Bot - Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root { --navy: #0C0050; --blue: #3388DD; --bg: #f4f7f6; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        header { background: var(--navy); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .main-container { display: flex; flex: 1; overflow: hidden; padding: 20px; gap: 20px; }
+        :root { --navy: #0C0050; --blue: #3388DD; --bg: #F4F1EA; --panel: #FFFFFF; --text-main: #2C3E50; --bot-bg: #EFECE5; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; color: var(--text-main); }
+        header { background: var(--navy); color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(12,0,80,0.15); z-index: 10; }
+        .main-container { display: flex; flex: 1; overflow: hidden; padding: 25px; gap: 25px; }
         
-        #history-sidebar { flex: 1.2; min-width: 260px; background: white; border-radius: 8px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
-        .history-list { flex: 1; overflow-y: auto; margin-top: 10px; }
-        .history-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
-        .history-item:hover { background: #eef4fb; border-left: 4px solid var(--blue); }
+        #history-sidebar { flex: 1.2; min-width: 260px; background: var(--panel); border-radius: 12px; padding: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); display: flex; flex-direction: column; border: 1px solid #Eeece5; }
+        .history-list { flex: 1; overflow-y: auto; margin-top: 10px; padding-right: 5px; }
+        .history-item { padding: 12px; border-bottom: 1px solid #f5f5f5; cursor: pointer; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; margin-bottom: 4px; }
+        .history-item:hover, .history-item.active { background: var(--bot-bg); border-left: 4px solid var(--blue); }
         
         .action-btns { display: flex; gap: 6px; margin-left: 10px; }
-        .btn-icon { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; border-radius: 4px; }
+        .btn-icon { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 4px; border-radius: 4px; opacity: 0.5; transition: opacity 0.2s; }
+        .history-item:hover .btn-icon { opacity: 1; }
 
-        #chat-window { flex: 2.5; background: white; border-radius: 8px; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        #chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .message { max-width: 80%; padding: 12px 18px; border-radius: 15px; line-height: 1.5; font-size: 0.95rem; }
-        .user-message { align-self: flex-end; background: var(--navy); color: white; border-bottom-right-radius: 2px; }
-        .bot-message { align-self: flex-start; background: var(--blue); color: white; border-bottom-left-radius: 2px; }
+        #chat-window { flex: 2.5; background: var(--panel); border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #Eeece5; }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 20px; }
         
-        #input-area { padding: 20px; border-top: 1px solid #eee; }
-        .input-row { display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 5px; outline: none; }
-        button#send-btn { background: var(--navy); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .message-wrapper { display: flex; gap: 12px; max-width: 85%; align-items: flex-end; }
+        .message-wrapper.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message-wrapper.bot { align-self: flex-start; }
+        .avatar { width: 38px; height: 38px; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.1); background: white; border: 2px solid white; flex-shrink: 0; }
+        .message { padding: 14px 20px; border-radius: 18px; line-height: 1.5; font-size: 0.95rem; white-space: pre-wrap; word-wrap: break-word; }
+        .user-message { background: var(--navy); color: white; border-bottom-right-radius: 4px; box-shadow: 0 3px 8px rgba(12,0,80,0.15); }
+        .bot-message { background: var(--bot-bg); color: var(--text-main); border-bottom-left-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         
-        #resource-sidebar { flex: 0.8; background: white; border-radius: 8px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h3 { color: var(--navy); font-size: 1rem; margin-top: 0; border-bottom: 2px solid var(--blue); padding-bottom: 5px; }
-        .nav-link { color: white; font-size: 0.9rem; text-decoration: underline; cursor: pointer; margin-left: 15px; }
+        #input-area { padding: 20px 25px; border-top: 1px solid #f0f0f0; background: #FCFBF9; border-radius: 0 0 12px 12px; }
+        .input-row { display: flex; gap: 12px; align-items: flex-end; }
+        textarea#user-input { flex: 1; padding: 14px; border: 1px solid #ddd; border-radius: 8px; outline: none; resize: none; font-family: inherit; font-size: 1rem; max-height: 150px; overflow-y: auto; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); transition: border-color 0.2s; }
+        textarea#user-input:focus { border-color: var(--blue); }
+        button#send-btn { background: var(--navy); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; height: 48px; transition: background 0.2s; box-shadow: 0 2px 6px rgba(12,0,80,0.2); }
+        button#send-btn:hover { background: var(--blue); }
+        
+        .thinking-indicator { font-style: italic; animation: pulse 1.5s infinite; color: #777; }
+        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+        #resource-sidebar { flex: 0.8; background: var(--panel); border-radius: 12px; padding: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #Eeece5; }
+        h3 { color: var(--navy); font-size: 1rem; margin-top: 0; border-bottom: 2px solid var(--blue); padding-bottom: 8px; margin-bottom: 12px; }
+        .nav-link { color: white; font-size: 0.9rem; text-decoration: none; cursor: pointer; margin-left: 15px; opacity: 0.9; transition: opacity 0.2s; }
+        .nav-link:hover { opacity: 1; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -68,10 +81,15 @@
     </div>
 
     <div id="chat-window">
-        <div id="chat-messages"><div class="message bot-message">Hey there {{ first_name }}! How can I make your day fantastic?</div></div>
+        <div id="chat-messages">
+            <div class="message-wrapper bot">
+                <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Clair&backgroundColor=EFECE5" class="avatar" alt="CLAIR">
+                <div class="message bot-message">Hi there! You’re doing amazing work today. I’m CLAIR—how can I make your day a little easier?</div>
+            </div>
+        </div>
         <div id="input-area">
             <div class="input-row">
-                <input type="text" id="user-input" placeholder="Ask about clinical protocols...">
+                <textarea id="user-input" rows="1" placeholder="Ask about clinical protocols..."></textarea>
                 <button id="send-btn" onclick="sendMessage()">Send</button>
             </div>
         </div>
@@ -82,7 +100,13 @@
         <ul style="list-style: disc; padding-left: 20px; font-size: 0.85rem;">
             {% for file in files %}
             <li style="margin-bottom: 8px;">
-                <a href="/preview/{{ file.filename }}" target="_blank" title="{{ file.filename }}" style="color:var(--navy); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; max-width:100%;">{{ file.filename }}</a>
+                <a href="/preview/{{ file.filename }}" target="_blank" title="{{ file.filename }}" style="color:var(--navy); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; max-width:100%;">
+                    {% if file.filename.lower().endswith('.pdf') %}📄
+                    {% elif file.filename.lower().endswith('.docx') %}📝
+                    {% else %}📊
+                    {% endif %}
+                    {{ file.filename }}
+                </a>
             </li>
             {% endfor %}
         </ul>
@@ -95,6 +119,8 @@
     marked.setOptions({ renderer: renderer });
 
     async function loadHistory(element) {
+        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
         const sessionId = element.getAttribute('data-session-id');
         const res = await fetch(`/get_session/${sessionId}`);
         if (!res.ok) return;
@@ -112,9 +138,10 @@
         const oldName = rowElement.querySelector('.display-title').innerText;
         const newName = prompt("New title:", oldName);
         if (!newName || newName === oldName) return;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const res = await fetch('/rename_chat', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
             body: JSON.stringify({session_id: sessionId, new_name: newName})
         });
         if (res.ok) rowElement.querySelector('.display-title').innerText = newName.substring(0, 22);
@@ -123,9 +150,10 @@
     async function deleteHistory(rowElement) {
         if (!confirm("Delete conversation?")) return;
         const sessionId = rowElement.getAttribute('data-session-id');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const res = await fetch('/delete_chat', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
             body: JSON.stringify({session_id: sessionId})
         });
         if (res.ok) rowElement.remove();
@@ -137,25 +165,82 @@
         if (!text) return;
         addMessage(text, 'user-message');
         input.value = '';
+        input.style.height = 'auto';
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        const thinkingWrapper = document.createElement('div');
+        thinkingWrapper.className = 'message-wrapper bot thinking-wrapper';
+        thinkingWrapper.innerHTML = '<img src="https://api.dicebear.com/7.x/notionists/svg?seed=Clair&backgroundColor=EFECE5" class="avatar"><div class="message bot-message thinking-indicator">Thinking...</div>';
+        document.getElementById('chat-messages').appendChild(thinkingWrapper);
+        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+
         const res = await fetch('/chat', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
             body: JSON.stringify({message: text})
         });
         const data = await res.json();
-        addMessage(data.answer, 'bot-message', true);
+        thinkingWrapper.remove();
+        addMessage(data.answer, 'bot-message', true, true);
     }
 
-    function addMessage(text, className, isMarkdown = false) {
+    function addMessage(text, className, isMarkdown = false, typewriter = false) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${className === 'user-message' ? 'user' : 'bot'}`;
+        
+        if (className.includes('bot-message')) {
+            const img = document.createElement('img');
+            img.src = "https://api.dicebear.com/7.x/notionists/svg?seed=Clair&backgroundColor=EFECE5";
+            img.className = 'avatar';
+            wrapper.appendChild(img);
+        } else if (className.includes('user-message')) {
+            const img = document.createElement('img');
+            img.src = "https://api.dicebear.com/7.x/initials/svg?seed={{ first_name }} {{ last_name }}&backgroundColor=0C0050&textColor=ffffff";
+            img.className = 'avatar';
+            wrapper.appendChild(img);
+        }
+
         const div = document.createElement('div');
         div.className = `message ${className}`;
-        div.innerHTML = isMarkdown ? marked.parse(text) : text;
-        document.getElementById('chat-messages').appendChild(div);
+        wrapper.appendChild(div);
+        document.getElementById('chat-messages').appendChild(wrapper);
+        
+        const content = isMarkdown ? marked.parse(text) : text;
         const chat = document.getElementById('chat-messages');
-        chat.scrollTop = chat.scrollHeight;
+        
+        if (typewriter) {
+            let i = 0;
+            let isTag = false;
+            function type() {
+                if (i < content.length) {
+                    let char = content.charAt(i);
+                    if (char === '<') isTag = true;
+                    if (char === '>') isTag = false;
+                    div.innerHTML = content.substring(0, i + 1);
+                    i++;
+                    chat.scrollTop = chat.scrollHeight;
+                    if (isTag) type();
+                    else setTimeout(type, 10); // Adjust typing speed here (lower is faster)
+                }
+            }
+            type();
+        } else {
+            div.innerHTML = content;
+            chat.scrollTop = chat.scrollHeight;
+        }
     }
 
-    document.getElementById('user-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    const userInput = document.getElementById('user-input');
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+    userInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
 </script>
 </body>
 </html>
