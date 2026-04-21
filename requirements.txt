@@ -135,3 +135,4 @@ flasgger
 Flask-WTF
 Flask-Limiter
 psycopg2-binary
+gunicorn
