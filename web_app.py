@@ -20,8 +20,8 @@ load_dotenv()
 
 # Link to AI Engine
 try:
-    from app import search_documents_web, collection, model, CHROMA_PATH
-    print(f"--- Web App Linked to AI Memory at: {CHROMA_PATH} ---")
+    from app import search_documents_web, supabase, model
+    print("--- Web App Linked to AI Memory via Supabase ---")
 except ImportError:
     print("CRITICAL: app.py not found.")
 
@@ -34,7 +34,11 @@ swagger = Swagger(app, template={
     }
 })
 app.secret_key = os.getenv('SECRET_KEY', 'liaison_secret_key_123')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///project.db')
+
+db_url = os.getenv('DATABASE_URL', 'sqlite:///project.db')
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Production Security Settings
@@ -255,7 +259,7 @@ def save_item():
     db.session.add(LibraryEntry(id=entry_id, notes=notes, label=label_tag, user_id=session['user_id']))
     db.session.commit()
     content = f"LABEL: {label_tag}\nCONTRIBUTOR: {contributor}\nNOTES: {notes}"
-    collection.add(ids=[entry_id], embeddings=model.encode([content]).tolist(), documents=[content], metadatas=[{"source": f"Contributor: {contributor} - {label_tag}"}])
+    supabase.table("liaison_library").upsert({"id": entry_id, "embedding": model.encode([content])[0].tolist(), "content": content, "metadata": {"source": f"Contributor: {contributor} - {label_tag}"}}).execute()
     return '<script>window.close();</script>'
 
 @app.route('/my_knowledge')
@@ -275,7 +279,7 @@ def edit_my_knowledge(entry_id):
         db.session.commit()
         contributor = f"{session.get('first_name')} {session.get('last_name')}"
         content = f"LABEL: {new_label}\nCONTRIBUTOR: {contributor}\nNOTES: {new_notes}"
-        collection.update(ids=[entry_id], embeddings=model.encode([content]).tolist(), documents=[content])
+        supabase.table("liaison_library").update({"embedding": model.encode([content])[0].tolist(), "content": content, "metadata": {"source": f"Contributor: {contributor} - {new_label}"}}).eq("id", entry_id).execute()
         return jsonify({"status": "success"})
     return jsonify({"status": "denied"}), 403
 @app.route('/delete_my_knowledge/<entry_id>', methods=['POST'])
@@ -284,7 +288,7 @@ def delete_my_knowledge(entry_id):
     if entry and entry.user_id == session.get('user_id'):
         db.session.delete(entry)
         db.session.commit()
-        collection.delete(ids=[entry_id])
+        supabase.table("liaison_library").delete().eq("id", entry_id).execute()
         return jsonify({"status": "success"})
     return jsonify({"status": "error"}), 403
 
@@ -430,17 +434,20 @@ def admin_upload():
             old_path = os.path.join(app.config['UPLOAD_FOLDER'], fname)
             if os.path.exists(old_path):
                 os.remove(old_path)
-            # Remove from Chroma
             try:
-                collection.delete(where={"source": fname})
+                supabase.storage.from_("library").remove([fname])
+                supabase.table("liaison_library").delete().contains("metadata", {"source": fname}).execute()
             except Exception as e:
-                print(f"Error deleting from Chroma: {e}")
+                print(f"Error deleting old file components: {e}")
             # Remove from db
             db.session.delete(existing)
             db.session.commit()
         
         # Save new file
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
         file.save(path)
+        with open(path, "rb") as f:
+            supabase.storage.from_("library").upload(fname, f.read(), file_options={"upsert": "true"})
         db.session.add(LibraryFile(filename=fname))
         db.session.commit()
         
@@ -451,15 +458,17 @@ def admin_upload():
                 reader = PdfReader(path)
                 for i, page in enumerate(reader.pages):
                     text = page.extract_text()
+                    if text:
+                        text = text.replace('\x00', '')
                     if text and len(text.strip()) > 50:  # Ignore empty/short pages
                         chunk_id = f"{fname}_pg_{i}"
-                        embedding = model.encode([text]).tolist()
-                        collection.add(
-                            ids=[chunk_id],
-                            embeddings=embedding,
-                            documents=[text],
-                            metadatas=[{"source": fname, "page": i + 1}]
-                        )
+                        embedding = model.encode([text])[0].tolist()
+                        supabase.table("liaison_library").upsert({
+                            "id": chunk_id,
+                            "embedding": embedding,
+                            "content": text,
+                            "metadata": {"source": fname, "page": i + 1}
+                        }).execute()
             elif fname.lower().endswith('.docx'):
                 # Process Word document
                 doc = Document(path)
@@ -476,15 +485,17 @@ def admin_upload():
                                 full_text.append(cell.text)
                 
                 text = '\n'.join(full_text)
+                if text:
+                    text = text.replace('\x00', '')
                 if text and len(text.strip()) > 50:
                     chunk_id = f"{fname}_doc"
-                    embedding = model.encode([text]).tolist()
-                    collection.add(
-                        ids=[chunk_id],
-                        embeddings=embedding,
-                        documents=[text],
-                        metadatas=[{"source": fname, "type": "word"}]
-                    )
+                    embedding = model.encode([text])[0].tolist()
+                    supabase.table("liaison_library").upsert({
+                        "id": chunk_id,
+                        "embedding": embedding,
+                        "content": text,
+                        "metadata": {"source": fname, "type": "word"}
+                    }).execute()
             elif fname.lower().endswith(('.xlsx', '.xls')):
                 # Process Excel file
                 workbook = openpyxl.load_workbook(path, data_only=True)
@@ -501,15 +512,17 @@ def admin_upload():
                             full_text.append(' | '.join(row_text))
                 
                 text = '\n'.join(full_text)
+                if text:
+                    text = text.replace('\x00', '')
                 if text and len(text.strip()) > 50:
                     chunk_id = f"{fname}_xls"
-                    embedding = model.encode([text]).tolist()
-                    collection.add(
-                        ids=[chunk_id],
-                        embeddings=embedding,
-                        documents=[text],
-                        metadatas=[{"source": fname, "type": "excel"}]
-                    )
+                    embedding = model.encode([text])[0].tolist()
+                    supabase.table("liaison_library").upsert({
+                        "id": chunk_id,
+                        "embedding": embedding,
+                        "content": text,
+                        "metadata": {"source": fname, "type": "excel"}
+                    }).execute()
         except Exception as e:
             print(f"Error ingesting {fname}: {e}")
     
@@ -526,11 +539,11 @@ def admin_delete_file(file_id):
         if os.path.exists(path): os.remove(path)
         db.session.delete(f_rec)
         db.session.commit()
-        # Remove from Chroma
         try:
-            collection.delete(where={"source": f_rec.filename})
+            supabase.storage.from_("library").remove([f_rec.filename])
+            supabase.table("liaison_library").delete().contains("metadata", {"source": f_rec.filename}).execute()
         except Exception as e:
-            print(f"Error deleting from Chroma: {e}")
+            print(f"Error deleting file components: {e}")
         return jsonify({"status": "success"})
     return jsonify({"status": "error"})
 
@@ -546,7 +559,7 @@ def admin_edit_entry(entry_id):
         db.session.commit()
         contributor = f"{entry.contributor.first_name} {entry.contributor.last_name}"
         content = f"LABEL: {new_label}\nCONTRIBUTOR: {contributor}\nNOTES: {new_notes}"
-        collection.update(ids=[entry_id], embeddings=model.encode([content]).tolist(), documents=[content], metadatas=[{"source": f"Contributor: {contributor} - {new_label}"}])
+        supabase.table("liaison_library").update({"embedding": model.encode([content])[0].tolist(), "content": content, "metadata": {"source": f"Contributor: {contributor} - {new_label}"}}).eq("id", entry_id).execute()
         return jsonify({"status": "success"})
     return jsonify({"status": "error"}), 404
 
@@ -557,7 +570,7 @@ def admin_delete_entry(entry_id):
     if entry:
         db.session.delete(entry)
         db.session.commit()
-        collection.delete(ids=[entry_id])
+        supabase.table("liaison_library").delete().eq("id", entry_id).execute()
         return jsonify({"status": "success"})
     return jsonify({"status": "error"}), 404
 
@@ -603,9 +616,16 @@ def preview_file(filename):
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     abs_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     if not os.path.exists(abs_path):
-        return "File not found", 404
+        try:
+            res = supabase.storage.from_("library").download(filename)
+            with open(abs_path, "wb") as f:
+                f.write(res)
+        except Exception as e:
+            print(f"Error downloading preview file: {e}")
+            return "File not found", 404
 
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
 
@@ -631,7 +651,13 @@ def preview_file(filename):
 
 @app.route('/library/<path:filename>')
 def get_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False)
+    try:
+        res = supabase.storage.from_('library').create_signed_url(filename, 3600)
+        if res and 'signedURL' in res:
+            return redirect(res['signedURL'])
+    except Exception as e:
+        print(f"Storage link error: {e}")
+    return "File not found", 404
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() in ('true', '1', 't')
