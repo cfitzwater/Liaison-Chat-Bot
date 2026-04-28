@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Liaison Admin</title>
     <style>
         :root { --navy: #0C0050; --blue: #3388DD; --bg: #f4f7f6; --red: #ff4444; --gray: #777; --green: #27ae60; }
@@ -32,6 +33,8 @@
         <button id="btn-entries" class="tab-btn" onclick="showTab('tab-entries')">Manual Entries</button>
         <button id="btn-files" class="tab-btn" onclick="showTab('tab-files')">Documents</button>
     </div>
+
+    <input type="text" id="adminSearch" placeholder="Search current tab..." onkeyup="filterAdminTables()" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box;">
 
     <div id="tab-users" class="tab-content active">
         <table>
@@ -77,6 +80,7 @@
 
     <div id="tab-files" class="tab-content">
         <form action="/admin/upload" method="POST" enctype="multipart/form-data" style="margin-bottom:20px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="file" name="file" required>
             <button type="submit" class="btn" style="background:var(--blue);">Upload PDF</button>
         </form>
@@ -104,29 +108,42 @@
 </div>
 
 <script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const headersBase = { 'X-CSRFToken': csrfToken };
     let activeEditId = null;
     function showTab(id) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         document.getElementById('btn-' + id.split('-')[1]).classList.add('active');
+        document.getElementById('adminSearch').value = ''; filterAdminTables();
         localStorage.setItem('adminActiveTab', id);
     }
     window.onload = () => { if(localStorage.getItem('adminActiveTab')) showTab(localStorage.getItem('adminActiveTab')); };
 
-    async function toggleAdmin(id) { await fetch(`/toggle_admin/${id}`, {method:'POST'}); location.reload(); }
-    async function resetPassword(id) { if(confirm("Reset password to Liaison1?")) { await fetch(`/admin/reset_password/${id}`, {method:'POST'}); alert('Password reset to Liaison1'); } }
-    async function deleteUser(id) { if(confirm("Delete user?")) { await fetch(`/admin/delete_user/${id}`, {method:'POST'}); document.getElementById('user-'+id).remove(); } }
+    async function toggleAdmin(id) { await fetch(`/toggle_admin/${id}`, {method:'POST', headers: headersBase}); location.reload(); }
+    async function resetPassword(id) { if(confirm("Reset password to Liaison1?")) { await fetch(`/admin/reset_password/${id}`, {method:'POST', headers: headersBase}); alert('Password reset to Liaison1'); } }
+    async function deleteUser(id) { if(confirm("Delete user?")) { await fetch(`/admin/delete_user/${id}`, {method:'POST', headers: headersBase}); document.getElementById('user-'+id).remove(); } }
     function openEdit(id, text, label) { activeEditId = id; document.getElementById('editText').value = text; document.getElementById('editTitle').value = label; document.getElementById('editModal').style.display='block'; }
     function closeEdit() { document.getElementById('editModal').style.display='none'; }
     async function saveEdit() {
         const notes = document.getElementById('editText').value;
         const label = document.getElementById('editTitle').value;
-        await fetch(`/admin/edit_entry/${activeEditId}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({notes, label})});
+        await fetch(`/admin/edit_entry/${activeEditId}`, {method:'POST', headers:{...headersBase, 'Content-Type':'application/json'}, body:JSON.stringify({notes, label})});
         location.reload();
     }
-    async function deleteEntry(id) { if(confirm("Delete?")) { await fetch(`/admin/delete_entry/${id}`, {method:'POST'}); document.getElementById('entry-'+id).remove(); } }
-    async function deleteFile(id) { if(confirm("Delete?")) { await fetch(`/admin/delete_file/${id}`, {method:'POST'}); document.getElementById('file-'+id).remove(); } }
+    async function deleteEntry(id) { if(confirm("Delete?")) { await fetch(`/admin/delete_entry/${id}`, {method:'POST', headers: headersBase}); document.getElementById('entry-'+id).remove(); } }
+    async function deleteFile(id) { if(confirm("Delete?")) { await fetch(`/admin/delete_file/${id}`, {method:'POST', headers: headersBase}); document.getElementById('file-'+id).remove(); } }
+
+    function filterAdminTables() {
+        const input = document.getElementById("adminSearch").value.toLowerCase();
+        const activeTab = document.querySelector('.tab-content.active');
+        const rows = activeTab.querySelectorAll('table tr');
+        rows.forEach((row, index) => {
+            if(row.closest('thead')) return;
+            row.style.display = row.innerText.toLowerCase().includes(input) ? '' : 'none';
+        });
+    }
 </script>
 </body>
 </html>

@@ -17,6 +17,7 @@
     <div class="card">
         <h2>New Knowledge Entry</h2>
         <form action="/save_item" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="field">
                 <label>Contributor Name</label>
                 <input type="text" name="user_name" value="{{ full_name }}" readonly style="background: #eee;">

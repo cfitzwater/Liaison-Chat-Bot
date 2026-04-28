@@ -24,12 +24,19 @@ except Exception as e:
     print(f"CRITICAL DATABASE ERROR: {e}")
 
 def search_documents_web(query):
+    if not query or not query.strip():
+        return "Please enter a valid query."
+        
     # 3. Embedding & Vector Search
-    query_embedding = model.encode([query])
-    results = collection.query(
-        query_embeddings=query_embedding.tolist(), 
-        n_results=6 
-    )
+    try:
+        query_embedding = model.encode([query])
+        results = collection.query(
+            query_embeddings=query_embedding.tolist(), 
+            n_results=6 
+        )
+    except Exception as e:
+        print(f"Database Query Error: {e}")
+        return "Error retrieving context from the database."
     
     # 4. Check if Search found anything
     if not results or not results['documents'] or not results['documents'][0]:
@@ -37,9 +44,10 @@ def search_documents_web(query):
 
     # 5. Build Context with Smart Citations
     context = ""
+    metadatas = results.get('metadatas')
     for i in range(len(results['documents'][0])):
         doc_text = results['documents'][0][i]
-        meta = results['metadatas'][0][i]
+        meta = (metadatas[0][i] if metadatas and metadatas[0] else None) or {}
         source = meta.get('source', 'Unknown')
         
         if "Contributor:" in source:
@@ -59,8 +67,13 @@ def search_documents_web(query):
     gen_client = genai.Client(api_key=api_key)
     
     prompt = (
-        f"You are a Clinical Liaison Bot. Answer the query using ONLY the context provided.\n\n"
-        f"INSTRUCTION: Cite your source by copying the exact 'SOURCE_TAG' at the end of your reply.\n\n"
+        f"You are a professional and highly accurate Clinical Liaison Assistant.\n"
+        f"Your role is to answer clinical and administrative questions for healthcare liaisons based ONLY on the provided context.\n\n"
+        f"STRICT RULES:\n"
+        f"1. Base your answer STRICTLY on the context provided. Do not use outside knowledge or hallucinate.\n"
+        f"2. If the context does not contain the answer, explicitly state: 'I'm sorry, I cannot find the answer to that in the current clinical library.'\n"
+        f"3. Format your response clearly using bullet points and bold text for readability.\n"
+        f"4. You MUST cite your sources by appending the exact 'SOURCE_TAG' directly after the relevant information.\n\n"
         f"Context:\n{context}\n"
         f"Query: {query}"
     )
@@ -73,13 +86,13 @@ def search_documents_web(query):
                 contents=prompt,
                 config={'temperature': 0.1}
             )
-            return response.text
+            return response.text or "Error: Empty response from AI."
         except Exception as e:
             print(f"\n--- API ATTEMPT {attempt + 1} LOG ---")
-            print(f"SOURCES FOUND: {results['metadatas'][0]}")
+            print(f"SOURCES FOUND: {results.get('metadatas')}")
             print(f"ERROR: {e}")
             
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e) or "503" in str(e) or "UNAVAILABLE" in str(e):
                 time.sleep(5)
                 continue
                 

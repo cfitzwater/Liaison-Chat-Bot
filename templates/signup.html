@@ -25,6 +25,7 @@
         </header>
         
         <form action="/signup" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <label for="first_name">First Name</label>
             <input type="text" id="first_name" name="first_name" placeholder="John" required>
 

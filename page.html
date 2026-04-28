@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Change Password</title>
+    <title>Liaison Login</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding-top: 100px; }
         .box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; }
@@ -33,25 +33,26 @@
             margin-top: 10px;
         }
         button:hover { background: #3388DD; }
+        .footer { text-align: center; margin-top: 20px; font-size: 0.9rem; color: #666; }
+        .footer a { color: #3388DD; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h2>Change Your Password</h2>
-        <p style="text-align: center; color: #666; margin-bottom: 20px;">Your password has been reset. Please choose a new password.</p>
+        <h2>Liaison Library Login</h2>
 
-        {% if error %}
-            <div class="error-msg">
-                {{ error }}
-            </div>
-        {% endif %}
+        
 
         <form method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <input type="password" name="new_password" placeholder="New Password" required autofocus>
-            <input type="password" name="confirm_password" placeholder="Confirm New Password" required>
-            <button type="submit">Change Password</button>
+            <input type="hidden" name="csrf_token" value="IjU0YWUyOGUzZjk1MjQ2ZDc0YWVjZTY5NGIyMDRkNWFmODEyZjljNjEi.aeKm7Q.gMCBqoaJ9SdaZnuxM8d5EmFTlk0"/>
+            <input type="email" name="email" placeholder="Email Address" required autofocus>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
         </form>
+
+        <div class="footer">
+            New to the library? <a href="/signup">Create Account</a>
+        </div>
     </div>
 </body>
 </html>

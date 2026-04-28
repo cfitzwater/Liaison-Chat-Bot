@@ -90,7 +90,7 @@ This section documents the implementation of a professional multi-user environme
 This section documents the transition from flat-file JSON storage to a production-ready **SQL Relational Database** and the implementation of advanced conversational UI patterns.
 
 ### Database Architecture & Migration
-* **SQLAlchemy & SQLite Implementation:** Replaced legacy JSON files with a persistent **SQLite** database (`project.db`). This allows for relational data integrity, foreign key constraints, and faster retrieval for clinical auditing.
+* **SQLAlchemy & PostgreSQL Implementation:** Replaced legacy JSON files with a production-ready **PostgreSQL** database. This allows for robust relational data integrity, foreign key constraints, and faster retrieval for clinical auditing.
 * **Relational Mapping:** Implemented a **One-to-Many** relationship between `User` and `ChatHistory` models. This ensures every chat session and manual entry is permanently tied to a specific clinical contributor.
 * **Object-Relational Mapping (ORM):** Leveraged **SQLAlchemy** to manage Python-to-SQL communication, improving scalability while maintaining code readability.
 
@@ -113,7 +113,7 @@ This section documents the final transition to a fully manageable clinical ecosy
 
 ### Admin-Level User & File CRUD
 * **Active User Management:** Expanded the Admin Dashboard to include secure **User Deletion** and role-toggling logic. This ensures administrators can offboard staff or adjust permissions without manual database edits.
-* **File Lifecycle Control:** Implemented a Document Management tab that allows admins to upload official PDFs and **Delete** outdated files. The system automatically handles the removal of the physical file from the server while purging associated vector embeddings from ChromaDB.
+* **File Lifecycle Control:** Implemented a Document Management tab that allows admins to upload official PDFs and **Delete** outdated files. The system automatically handles the removal of the physical file from the server while purging associated vector embeddings from ChromaDB. Additionally, a startup auto-sync script ensures the SQL database always perfectly reflects the physical `library/` folder.
 
 ### Collaborative Knowledge CRUD
 * **Asynchronous Editing (Update):** Developed a modally-driven **Edit System** for manual knowledge entries. Both Admins (on the dashboard) and Users (on the `/my_knowledge` page) can now update clinical notes. 
@@ -193,7 +193,7 @@ This section documents the comprehensive security framework implemented to prote
 * **Transaction Safety:** Database operations use atomic transactions with proper commit/rollback handling.
 
 ### Authentication Flow Security
-* **Multi-Factor Validation:** Login requires both valid email and password combination with case-insensitive email matching.
+* **Validation & Rate Limiting:** Login requires both valid email and password combinations with case-insensitive email matching. `Flask-Limiter` is implemented to restrict login and signup attempts (e.g., 5 per minute) and overall API traffic, preventing brute-force attacks.
 * **Session Invalidation:** Logout clears all session data, preventing session fixation attacks.
 * **Account Recovery Security:** Password reset generates secure temporary passwords that expire upon first use.
 * **Signup Protection:** Duplicate email prevention and automatic admin assignment for initial user setup.
@@ -212,7 +212,7 @@ This section documents the comprehensive security framework implemented to prote
 | **Access Control** | **Role & Ownership Checks** | Unauthorized data access, privilege escalation |
 | **Input Validation** | **Type Checking & Sanitization** | Injection attacks, malformed data |
 | **Database Security** | **SQLAlchemy ORM** | SQL injection, data corruption |
-| **Authentication Flow** | **Multi-step Verification** | Credential stuffing, account takeover |
+| **Authentication Flow** | **Multi-step Verification & Limiter** | Credential stuffing, account takeover, brute-force |
 
 ## Chunk 10: RESTful API Implementation
 This section documents the addition of a RESTful API component to make the application's data available to other programs, fulfilling the technical challenge requirements.
@@ -220,6 +220,7 @@ This section documents the addition of a RESTful API component to make the appli
 ### API Design & Architecture
 * **Endpoint Prefix:** All API routes are grouped under `/api/v1/` for versioning and organization.
 * **Authentication Protection:** API endpoints require valid user sessions, returning `401 Unauthorized` for unauthenticated requests.
+* **Interactive Documentation:** Integrated **Flasgger** (Swagger UI) to automatically generate interactive, OpenAPI-compliant documentation accessible directly within the application.
 * **JSON Response Format:** All responses are structured as JSON objects with consistent field naming.
 * **HTTP Status Codes:** Proper status codes (200 OK, 401 Unauthorized, 404 Not Found) for different scenarios.
 
@@ -281,11 +282,48 @@ This section documents the expansion of document processing capabilities to incl
 * Preserves sheet names and row/column relationships
 * Formats data with pipe separators for readability
 
+#### In-Browser Preview
+* Custom `/preview/<filename>` route securely handles embedded viewing of PDFs.
+* Dynamically extracts and renders raw text for Word and Excel files directly within the browser, eliminating the need to download files locally for a quick review.
+
 ### Admin-Only Access Control
 * **Upload Restrictions:** Only users with admin privileges can upload documents to the library
 * **Processing Security:** Document text extraction and indexing is performed server-side with admin verification
 * **Deletion Controls:** Only administrators can remove documents from the library
 * **Content Governance:** Ensures all searchable content meets organizational standards
+
+## Chunk 12: UI/UX Polish & Engagement
+This section documents the final frontend refinements designed to make the clinical tool more approachable, intuitive, and user-friendly for liaisons.
+
+### Interface & Accessibility
+* **"Cozy Clinical" Color Palette:** Transitioned the UI from a stark, high-contrast corporate theme to a softer, warm-oatmeal palette. This reduces eye strain for clinicians using the application for extended shifts.
+* **Dynamic Avatars:** Integrated the **DiceBear API** to automatically generate a friendly, approachable cartoon avatar for the AI ("CLAIR") and personalized initial-based avatars for authenticated users based on their session data.
+* **Typewriter Animation:** Implemented a custom JavaScript-based streaming typewriter effect for AI responses, alongside a pulsing "Thinking..." indicator. This effectively masks LLM generation latency and makes the application feel significantly faster and more conversational.
+* **Multi-line Chat Input:** Upgraded the primary chat interface to an auto-resizing `<textarea>`, allowing users to use `Shift+Enter` to format complex, multi-paragraph clinical questions while preserving standard `Enter` to instantly send.
+
+### Administrative & Library UX
+* **Client-Side Search Filtering:** Built a dynamic JavaScript search bar into the Admin Panel, allowing administrators to instantly filter through large tables of users, documents, and manual entries without making database calls or reloading the page.
+* **Visual File Indicators:** Enhanced the Library sidebar using Jinja2 conditional logic to automatically append corresponding emojis (📄 for PDF, 📝 for Word, 📊 for Excel) based on file extensions.
+* **Active Conversation Tracking:** Added an active state CSS highlight to the history sidebar, ensuring users always visually know which historical clinical thread they are currently reviewing.
+
+### API Documentation Refinement
+* **Swagger Authentication Context:** Expanded the `/apidocs` Swagger description to explicitly instruct external developers on how to obtain and use the required Flask session cookies for API authentication.
+* **Error Schema Mapping:** Fully mapped the `400 Bad Request` and `401 Unauthorized` JSON error responses within the OpenAPI specification for the primary `/chat` endpoint so external programs know exactly how to handle bad payloads.
+
+---
+
+## Chunk 13: Production Hardening
+This section documents the final, critical security measures implemented to prepare the application for a live production deployment on a platform like Heroku.
+
+### Deployment & Server Security
+*   **Reverse Proxy Compatibility:** Implemented **`ProxyFix`** to ensure the `Flask-Limiter` correctly identifies the true client IP address when deployed behind a reverse proxy (e.g., Nginx, Heroku Dyno). This prevents the entire application from being rate-limited due to the actions of a single user.
+*   **Strict File Upload Validation:** Hardened the `/admin/upload` endpoint by validating file extensions against a server-side `ALLOWED_EXTENSIONS` list (`pdf`, `docx`, `xlsx`, `xls`) **before** the file is saved to disk. This mitigates the risk of a compromised admin account uploading malicious executable files.
+*   **Secure Session Cookie Configuration:** Explicitly configured Flask's session cookies with modern security best practices:
+    *   `SESSION_COOKIE_HTTPONLY = True`: Prevents client-side JavaScript from accessing the session cookie, mitigating XSS attacks.
+    *   `SESSION_COOKIE_SECURE = True`: Ensures the session cookie is only transmitted over an encrypted HTTPS connection in production.
+    *   `SESSION_COOKIE_SAMESITE = 'Lax'`: Provides robust, browser-level protection against most Cross-Site Request Forgery (CSRF) attacks.
+*   **Full CSRF Protection:** Removed all `@csrf.exempt` decorators from AJAX-based `POST` routes and implemented the standard `X-CSRFToken` header pattern in the frontend JavaScript. This ensures every state-changing request is validated against CSRF attacks.
+*   **Production-Ready Dependencies:** Added `gunicorn` and `psycopg2-binary` to `requirements.txt` and created a `Procfile` to define the web server process for Heroku deployment.
 
 ### Technical Implementation
 * **Library Dependencies:** Added `python-docx` for Word processing and `openpyxl` for Excel processing
