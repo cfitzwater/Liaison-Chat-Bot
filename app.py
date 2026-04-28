@@ -1,7 +1,7 @@
 import os
 import time
 import random
-import chromadb
+from supabase import create_client, Client
 from google import genai
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
@@ -9,17 +9,18 @@ from sentence_transformers import SentenceTransformer
 # 1. HARD-LOCK PATHS
 load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CHROMA_PATH = os.path.join(BASE_DIR, "chroma_db")
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 # 2. Initialize Components
 print(f"--- AI Search Engine Initializing ---")
-print(f"Target Database: {CHROMA_PATH}")
 
 try:
-    client = chromadb.PersistentClient(path=CHROMA_PATH)
-    collection = client.get_or_create_collection("liaison_library")
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
     model = SentenceTransformer('all-MiniLM-L6-v2')
-    print(f"Status: {collection.count()} clinical chunks available in memory.")
+    response = supabase.table("liaison_library").select("count", count="exact").execute()
+    print(f"Status: {response.count} clinical chunks available in memory.")
 except Exception as e:
     print(f"CRITICAL DATABASE ERROR: {e}")
 
@@ -29,26 +30,28 @@ def search_documents_web(query):
         
     # 3. Embedding & Vector Search
     try:
-        query_embedding = model.encode([query])
-        results = collection.query(
-            query_embeddings=query_embedding.tolist(), 
-            n_results=6 
-        )
+        query_embedding = model.encode([query])[0].tolist()
+        response = supabase.rpc(
+            "match_documents",
+            {"query_embedding": query_embedding, "match_count": 6}
+        ).execute()
+        results = response.data
     except Exception as e:
         print(f"Database Query Error: {e}")
         return "Error retrieving context from the database."
     
     # 4. Check if Search found anything
-    if not results or not results['documents'] or not results['documents'][0]:
+    if not results:
         return "I'm sorry, I couldn't find any information in the clinical library regarding that query."
 
     # 5. Build Context with Smart Citations
     context = ""
-    metadatas = results.get('metadatas')
-    for i in range(len(results['documents'][0])):
-        doc_text = results['documents'][0][i]
-        meta = (metadatas[0][i] if metadatas and metadatas[0] else None) or {}
+    sources_found = []
+    for doc in results:
+        doc_text = doc.get('content', '')
+        meta = doc.get('metadata', {})
         source = meta.get('source', 'Unknown')
+        sources_found.append(meta)
         
         if "Contributor:" in source:
             citation = f"**{source}**"
@@ -89,7 +92,7 @@ def search_documents_web(query):
             return response.text or "Error: Empty response from AI."
         except Exception as e:
             print(f"\n--- API ATTEMPT {attempt + 1} LOG ---")
-            print(f"SOURCES FOUND: {results.get('metadatas')}")
+            print(f"SOURCES FOUND: {sources_found}")
             print(f"ERROR: {e}")
             
             if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e) or "503" in str(e) or "UNAVAILABLE" in str(e):
@@ -101,4 +104,4 @@ def search_documents_web(query):
     return "The system is currently over its free-tier capacity. Please try again in 30 seconds."
 
 # 8. EXPORTS (This must be outside any function or string)
-__all__ = ['search_documents_web', 'collection', 'model', 'CHROMA_PATH']
+__all__ = ['search_documents_web', 'supabase', 'model']
